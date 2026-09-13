@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+tabaudit_demo/
+*.html
+!src/tabaudit/report/template.html
+.DS_Store
+Thumbs.db

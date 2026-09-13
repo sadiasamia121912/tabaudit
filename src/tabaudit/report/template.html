@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tabaudit report — {{ summary.path | basename }}</title>
+<style>
+  :root {
+    --bg: #0f1117; --panel: #171a23; --panel2: #1e222e; --text: #e6e8ee; --muted: #8b90a0;
+    --border: #2a2f3d; --accent: #4cc2ff;
+    --critical: #ff4d4f; --high: #ff8c1a; --medium: #f5c518; --low: #35c4d8; --info: #7d8399;
+    --good: #3ddc84;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.55 -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+         background: var(--bg); color: var(--text); padding: 32px 20px; }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+  header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 24px; }
+  header h1 { margin: 0; font-size: 26px; letter-spacing: -0.01em; }
+  header h1 span { color: var(--accent); }
+  header .meta { color: var(--muted); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; }
+  .card h2 { margin: 0 0 14px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
+  dt { color: var(--muted); } dd { margin: 0; word-break: break-all; }
+  .score { display: flex; align-items: center; gap: 22px; }
+  .ring { --p: {{ score }}; width: 112px; height: 112px; border-radius: 50%; flex: none;
+          background: conic-gradient(var(--gcolor) calc(var(--p) * 1%), var(--panel2) 0);
+          display: grid; place-items: center; }
+  .ring > div { width: 86px; height: 86px; border-radius: 50%; background: var(--panel);
+                display: grid; place-items: center; font-size: 30px; font-weight: 700; color: var(--gcolor); }
+  .grade { display: inline-block; font-weight: 800; font-size: 20px; padding: 2px 12px; border-radius: 8px;
+           background: var(--gcolor); color: #0f1117; }
+  .verdict { margin-top: 6px; color: var(--gcolor); font-style: italic; }
+  .counts { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 2px 8px;
+           border-radius: 6px; color: #0f1117; text-transform: uppercase; }
+  .badge.critical { background: var(--critical); color: #fff; } .badge.high { background: var(--high); }
+  .badge.medium { background: var(--medium); } .badge.low { background: var(--low); } .badge.info { background: var(--info); color:#fff; }
+  .findings { margin-top: 28px; }
+  .findings h2 { font-size: 18px; margin: 0 0 12px; }
+  .finding { border-left: 4px solid var(--border); margin-bottom: 14px; }
+  .finding.critical { border-left-color: var(--critical); } .finding.high { border-left-color: var(--high); }
+  .finding.medium { border-left-color: var(--medium); } .finding.low { border-left-color: var(--low); }
+  .finding.info { border-left-color: var(--info); }
+  .finding .title { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; }
+  .finding .check { margin-left: auto; color: var(--muted); font-size: 12px; font-family: ui-monospace, Consolas, monospace; }
+  .finding p { margin: 10px 0 0; color: #c9cdd8; }
+  .finding .rec { margin-top: 10px; padding: 10px 12px; background: rgba(61,220,132,.08); border-radius: 8px; color: var(--good); }
+  .finding .cols { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .finding .cols code { background: var(--panel2); border: 1px solid var(--border); padding: 1px 7px; border-radius: 6px; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; } td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .ok { color: var(--good); } .err { color: var(--critical); }
+  footer { margin-top: 32px; color: var(--muted); font-size: 12px; text-align: center; }
+  .empty { color: var(--good); font-weight: 600; }
+</style>
+</head>
+<body style="--gcolor: {{ grade_color }}">
+<div class="wrap">
+  <header>
+    <h1><span>tabaudit</span> report</h1>
+    <div class="meta">{{ summary.path }} · generated {{ generated_at }} · v{{ version }}</div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Data health</h2>
+      <div class="score">
+        <div class="ring"><div>{{ score }}</div></div>
+        <div>
+          <span class="grade">{{ grade }}</span>
+          <div class="verdict">{{ verdict }}</div>
+          <div class="counts">
+            {% for sev, n in counts %}{% if n %}<span class="badge {{ sev }}">{{ sev }} {{ n }}</span>{% endif %}{% endfor %}
+            {% if not findings %}<span class="empty">No issues found</span>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Dataset</h2>
+      <dl>
+        <dt>Shape</dt><dd>{{ "{:,}".format(summary.n_rows) }} rows × {{ summary.n_cols }} columns ({{ summary.memory_mb }} MB)</dd>
+        <dt>Columns</dt><dd>{% for k, v in summary.dtypes.items() %}{{ v }} {{ k }}{{ ", " if not loop.last }}{% endfor %}</dd>
+        <dt>Target</dt><dd>{% if summary.target %}<code>{{ summary.target }}</code> → {{ summary.task }}{% if summary.n_classes %} ({{ summary.n_classes }} classes){% endif %}{% else %}<em>none</em>{% endif %}</dd>
+        {% if summary.test_path %}<dt>Test set</dt><dd>{{ summary.test_path }} ({{ "{:,}".format(summary.n_test_rows) }} rows)</dd>{% endif %}
+      </dl>
+    </div>
+  </div>
+
+  <section class="findings">
+    <h2>Findings <span style="color:var(--muted);font-weight:400">({{ findings | length }})</span></h2>
+    {% for f in findings %}
+    <div class="card finding {{ f.severity.value }}">
+      <div class="title">
+        <span class="badge {{ f.severity.value }}">{{ f.severity.value }}</span>
+        {{ f.title }}
+        <span class="check">{{ f.check }}</span>
+      </div>
+      <p>{{ f.detail }}</p>
+      {% if f.columns %}<div class="cols">{% for c in f.columns[:30] %}<code>{{ c }}</code>{% endfor %}{% if f.columns|length > 30 %}<code>+{{ f.columns|length - 30 }} more</code>{% endif %}</div>{% endif %}
+      {% if f.recommendation %}<div class="rec">→ {{ f.recommendation }}</div>{% endif %}
+      {% if f.evidence.top_suspects %}
+      <table>
+        <thead><tr><th>row</th><th>given label</th><th>suggested label</th><th class="num">P(given)</th><th class="num">P(suggested)</th></tr></thead>
+        <tbody>
+        {% for r in f.evidence.top_suspects[:15] %}
+          <tr><td class="num">{{ r.row }}</td><td>{{ r.given_label }}</td><td><strong>{{ r.suggested_label }}</strong></td>
+              <td class="num">{{ "%.2f" | format(r.confidence_in_given) }}</td><td class="num">{{ "%.2f" | format(r.confidence_in_suggested) }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </section>
+
+  <div class="card" style="margin-top:20px">
+    <h2>Checks run</h2>
+    <table>
+      <thead><tr><th>check</th><th>status</th><th class="num">findings</th><th class="num">time</th></tr></thead>
+      <tbody>
+      {% for c in checks %}
+        <tr><td><code>{{ c.name }}</code></td>
+            <td>{% if c.status == "ok" %}<span class="ok">✓ ok</span>{% else %}<span class="err">✗ {{ c.status }}</span> <small>{{ c.note }}</small>{% endif %}</td>
+            <td class="num">{{ c.n_findings }}</td><td class="num">{{ "%.2f" | format(c.duration_s) }}s</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <footer>Generated by <strong>tabaudit</strong> v{{ version }} · audit tabular datasets before you train</footer>
+</div>
+</body>
+</html>
