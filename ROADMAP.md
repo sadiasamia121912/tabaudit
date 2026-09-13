@@ -87,3 +87,20 @@ Do **not** start until Phase 3 is complete. See `../AI_ML_Portfolio_Projects.md`
 - One commit per finished checkbox; push at the end of each session.
 - Run `pytest -q && ruff check src tests examples` before every commit.
 - If something is taking > 2× the estimate, cut scope, don't extend time.
+
+---
+
+## Session log
+
+**2026-09-13** — Phase 1 tasks 1.1–1.4 done, pushed (`f7b68aa`). `.venv` and dataset cache
+deleted to free space. **To resume:**
+```powershell
+cd C:\Users\User\dev\tabaudit
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -e ".[dev]"
+pytest -q                                   # expect 22 passed
+python benchmarks/run_benchmarks.py         # re-downloads datasets (~1 min), ~40 s to audit
+```
+Next: task 1.5 (manually verify label-noise suspects), retry `creditcard` on a good
+connection, then Phase 2 — starting with the gap-based leakage fix from `docs/benchmarks.md`.
