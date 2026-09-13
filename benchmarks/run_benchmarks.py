@@ -27,11 +27,22 @@ from tabaudit import Severity, run_audit
 # 1. What to audit.  (openml name, openml version, target column)
 #    Version pins matter: OpenML hosts several copies of "adult" etc. and they differ.
 # ---------------------------------------------------------------------------
-DATASETS: list[tuple[str, int, str]] = [
+# Optional 4th element: column renames. OpenML anonymises some datasets (V1, V2, ...);
+# we restore the names documented by the original source so findings are readable.
+BANK_MARKETING_COLS = [
+    "age", "job", "marital", "education", "default", "balance", "housing", "loan",
+    "contact", "day", "month", "duration", "campaign", "pdays", "previous", "poutcome",
+]  # fmt: skip
+DATASETS: list[tuple] = [
     ("titanic", 1, "survived"),
     ("adult", 2, "class"),
     ("credit-g", 1, "class"),
     ("telco-customer-churn", 1, "Churn"),
+    ("bank-marketing", 1, "Class", {f"V{i}": c for i, c in enumerate(BANK_MARKETING_COLS, 1)}),
+    ("breast-w", 1, "Class"),
+    ("heart-statlog", 1, "class"),
+    ("diabetes", 1, "class"),
+    ("spambase", 1, "class"),
     ("creditcard", 1, "Class"),
 ]
 
@@ -48,12 +59,14 @@ console = Console()
 # ---------------------------------------------------------------------------
 # 2. Audit one dataset and boil the report down to a JSON-friendly dict.
 # ---------------------------------------------------------------------------
-def audit_one(name: str, version: int, target: str) -> dict:
+def audit_one(name: str, version: int, target: str, rename: dict | None = None) -> dict:
     t0 = time.perf_counter()
     bunch = fetch_openml(
         name, version=version, data_home=str(CACHE_DIR), as_frame=True, parser="auto"
     )
     df = bunch.frame  # features + target in one DataFrame, exactly what a user would have
+    if rename:
+        df = df.rename(columns=rename)
     report = run_audit(df, target=target)  # max_rows left at the 50 000 default on purpose
 
     findings = report.sorted_findings()
@@ -92,10 +105,10 @@ def main(only: list[str]) -> None:
         sys.exit(f"No datasets matched {only}. Known: {[d[0] for d in DATASETS]}")
 
     results: list[dict] = []
-    for name, version, target in selected:
+    for name, version, target, *extra in selected:
         console.print(f"[cyan]auditing[/] {name} …", end=" ")
         try:
-            row = audit_one(name, version, target)
+            row = audit_one(name, version, target, *extra)
             console.print(f"score {row['score']} ({row['grade']}) in {row['seconds']}s")
         except Exception as exc:  # keep going and report it
             row = {"dataset": name, "error": f"{type(exc).__name__}: {exc}"}
@@ -106,7 +119,7 @@ def main(only: list[str]) -> None:
     previous = json.loads(RESULTS_PATH.read_text(encoding="utf-8")) if RESULTS_PATH.exists() else []
     merged = {r["dataset"]: r for r in previous}
     merged.update({r["dataset"]: r for r in results})
-    results = [merged[name] for name, _, _ in DATASETS if name in merged]  # keep DATASETS order
+    results = [merged[d[0]] for d in DATASETS if d[0] in merged]  # keep DATASETS order
 
     RESULTS_PATH.write_text(json.dumps(results, indent=2), encoding="utf-8")
     print_summary(results)

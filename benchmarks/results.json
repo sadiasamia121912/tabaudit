@@ -204,6 +204,200 @@
     "seconds": 1.8
   },
   {
+    "dataset": "bank-marketing",
+    "openml_version": 1,
+    "target": "Class",
+    "n_rows": 45211,
+    "n_cols": 17,
+    "score": 94,
+    "grade": "A",
+    "counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 2,
+      "info": 0
+    },
+    "has_headline_issue": false,
+    "findings": [
+      {
+        "check": "imbalance",
+        "severity": "low",
+        "title": "Class imbalance 8:1 (minority class = 11.70%)",
+        "detail": "Accuracy is meaningless here - a model predicting the majority class scores 88.3% without learning anything.",
+        "columns": [
+          "Class"
+        ]
+      },
+      {
+        "check": "label_noise",
+        "severity": "low",
+        "title": "~352 rows (0.8%) are likely mislabeled, 1,223 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "columns": [
+          "Class"
+        ]
+      }
+    ],
+    "check_errors": [],
+    "seconds": 15.6
+  },
+  {
+    "dataset": "breast-w",
+    "openml_version": 1,
+    "target": "Class",
+    "n_rows": 699,
+    "n_cols": 10,
+    "score": 67,
+    "grade": "C",
+    "counts": {
+      "critical": 0,
+      "high": 2,
+      "medium": 0,
+      "low": 1,
+      "info": 0
+    },
+    "has_headline_issue": true,
+    "findings": [
+      {
+        "check": "duplicates",
+        "severity": "high",
+        "title": "236 exact duplicate rows (33.8%)",
+        "detail": "Identical rows will land in both train and validation folds, inflating every cross-validation metric.",
+        "columns": []
+      },
+      {
+        "check": "leakage",
+        "severity": "high",
+        "title": "6 feature(s) are suspiciously predictive alone",
+        "detail": "Clump_Thickness (AUC=0.900); Cell_Size_Uniformity (AUC=0.970); Cell_Shape_Uniformity (AUC=0.967); Single_Epi_Cell_Size (AUC=0.909); Bare_Nuclei (AUC=0.931); Bland_Chromatin (AUC=0.932)",
+        "columns": [
+          "Clump_Thickness",
+          "Cell_Size_Uniformity",
+          "Cell_Shape_Uniformity",
+          "Single_Epi_Cell_Size",
+          "Bare_Nuclei",
+          "Bland_Chromatin"
+        ]
+      },
+      {
+        "check": "label_noise",
+        "severity": "low",
+        "title": "~15 rows (2.1%) are likely mislabeled, 0 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows; estimated with Bare_Nuclei, Bland_Chromatin, Cell_Shape_Uniformity, Cell_Size_Uniformity, Clump_Thickness, Single_Epi_Cell_Size excluded as leaky/identifier. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "columns": [
+          "Class"
+        ]
+      }
+    ],
+    "check_errors": [],
+    "seconds": 1.4
+  },
+  {
+    "dataset": "heart-statlog",
+    "openml_version": 1,
+    "target": "class",
+    "n_rows": 270,
+    "n_cols": 14,
+    "score": 93,
+    "grade": "A",
+    "counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 1,
+      "low": 0,
+      "info": 0
+    },
+    "has_headline_issue": false,
+    "findings": [
+      {
+        "check": "label_noise",
+        "severity": "medium",
+        "title": "~17 rows (6.3%) are likely mislabeled, 4 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "columns": [
+          "class"
+        ]
+      }
+    ],
+    "check_errors": [],
+    "seconds": 1.8
+  },
+  {
+    "dataset": "diabetes",
+    "openml_version": 1,
+    "target": "class",
+    "n_rows": 768,
+    "n_cols": 9,
+    "score": 93,
+    "grade": "A",
+    "counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 1,
+      "low": 0,
+      "info": 0
+    },
+    "has_headline_issue": false,
+    "findings": [
+      {
+        "check": "label_noise",
+        "severity": "medium",
+        "title": "~41 rows (5.3%) are likely mislabeled, 62 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "columns": [
+          "class"
+        ]
+      }
+    ],
+    "check_errors": [],
+    "seconds": 1.3
+  },
+  {
+    "dataset": "spambase",
+    "openml_version": 1,
+    "target": "class",
+    "n_rows": 4601,
+    "n_cols": 58,
+    "score": 75,
+    "grade": "B",
+    "counts": {
+      "critical": 0,
+      "high": 1,
+      "medium": 1,
+      "low": 1,
+      "info": 0
+    },
+    "has_headline_issue": true,
+    "findings": [
+      {
+        "check": "duplicates",
+        "severity": "high",
+        "title": "391 exact duplicate rows (8.5%)",
+        "detail": "Identical rows will land in both train and validation folds, inflating every cross-validation metric.",
+        "columns": []
+      },
+      {
+        "check": "duplicates",
+        "severity": "medium",
+        "title": "3 feature-identical group(s) carry conflicting labels",
+        "detail": "6 rows share identical features with another row but have a different target value. No model can fit these; they cap achievable accuracy.",
+        "columns": []
+      },
+      {
+        "check": "label_noise",
+        "severity": "low",
+        "title": "~55 rows (1.2%) are likely mislabeled, 0 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "columns": [
+          "class"
+        ]
+      }
+    ],
+    "check_errors": [],
+    "seconds": 10.7
+  },
+  {
     "dataset": "creditcard",
     "error": "IncompleteRead: IncompleteRead(687704 bytes read)"
   }
