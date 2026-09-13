@@ -11,3 +11,4 @@ tabaudit_demo/
 !src/tabaudit/report/template.html
 .DS_Store
 Thumbs.db
+benchmarks/openml_cache/
