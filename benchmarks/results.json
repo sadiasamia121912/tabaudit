@@ -1,0 +1,210 @@
+[
+  {
+    "dataset": "titanic",
+    "openml_version": 1,
+    "target": "survived",
+    "n_rows": 1309,
+    "n_cols": 14,
+    "score": 64,
+    "grade": "C",
+    "counts": {
+      "critical": 0,
+      "high": 1,
+      "medium": 3,
+      "low": 0,
+      "info": 0
+    },
+    "has_headline_issue": true,
+    "findings": [
+      {
+        "check": "leakage",
+        "severity": "high",
+        "title": "1 feature(s) are suspiciously predictive alone",
+        "detail": "boat (AUC=0.967) - its *missingness alone* has AUC 0.97",
+        "columns": [
+          "boat"
+        ]
+      },
+      {
+        "check": "label_noise",
+        "severity": "medium",
+        "title": "~76 rows (5.8%) are likely mislabeled, 26 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows; estimated with boat, name excluded as leaky/identifier. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "columns": [
+          "survived"
+        ]
+      },
+      {
+        "check": "leakage",
+        "severity": "medium",
+        "title": "1 identifier-like column(s) present as features",
+        "detail": "name (100% unique)",
+        "columns": [
+          "name"
+        ]
+      },
+      {
+        "check": "schema",
+        "severity": "medium",
+        "title": "3 column(s) are >=50% missing",
+        "detail": "body (91%), cabin (77%), boat (63%)",
+        "columns": [
+          "body",
+          "cabin",
+          "boat"
+        ]
+      }
+    ],
+    "check_errors": [],
+    "seconds": 1.2
+  },
+  {
+    "dataset": "adult",
+    "openml_version": 2,
+    "target": "class",
+    "n_rows": 48842,
+    "n_cols": 15,
+    "score": 81,
+    "grade": "B",
+    "counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 1,
+      "low": 4,
+      "info": 0
+    },
+    "has_headline_issue": false,
+    "findings": [
+      {
+        "check": "duplicates",
+        "severity": "medium",
+        "title": "5 feature-identical group(s) carry conflicting labels",
+        "detail": "10 rows share identical features with another row but have a different target value. No model can fit these; they cap achievable accuracy.",
+        "columns": []
+      },
+      {
+        "check": "duplicates",
+        "severity": "low",
+        "title": "52 exact duplicate rows (0.1%)",
+        "detail": "Identical rows will land in both train and validation folds, inflating every cross-validation metric.",
+        "columns": []
+      },
+      {
+        "check": "imbalance",
+        "severity": "low",
+        "title": "Class imbalance 3:1 (minority class = 23.93%)",
+        "detail": "Accuracy is meaningless here - a model predicting the majority class scores 76.1% without learning anything.",
+        "columns": [
+          "class"
+        ]
+      },
+      {
+        "check": "label_noise",
+        "severity": "low",
+        "title": "~794 rows (1.6%) are likely mislabeled, 955 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "columns": [
+          "class"
+        ]
+      },
+      {
+        "check": "leakage",
+        "severity": "low",
+        "title": "1 column name(s) reference the target 'class'",
+        "detail": "workclass",
+        "columns": [
+          "workclass"
+        ]
+      }
+    ],
+    "check_errors": [],
+    "seconds": 6.4
+  },
+  {
+    "dataset": "credit-g",
+    "openml_version": 1,
+    "target": "class",
+    "n_rows": 1000,
+    "n_cols": 21,
+    "score": 93,
+    "grade": "A",
+    "counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 1,
+      "low": 0,
+      "info": 0
+    },
+    "has_headline_issue": false,
+    "findings": [
+      {
+        "check": "label_noise",
+        "severity": "medium",
+        "title": "~61 rows (6.1%) are likely mislabeled, 68 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "columns": [
+          "class"
+        ]
+      }
+    ],
+    "check_errors": [],
+    "seconds": 0.9
+  },
+  {
+    "dataset": "telco-customer-churn",
+    "openml_version": 1,
+    "target": "Churn",
+    "n_rows": 7043,
+    "n_cols": 20,
+    "score": 80,
+    "grade": "B",
+    "counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 2,
+      "low": 2,
+      "info": 0
+    },
+    "has_headline_issue": false,
+    "findings": [
+      {
+        "check": "duplicates",
+        "severity": "medium",
+        "title": "18 feature-identical group(s) carry conflicting labels",
+        "detail": "42 rows share identical features with another row but have a different target value. No model can fit these; they cap achievable accuracy.",
+        "columns": []
+      },
+      {
+        "check": "label_noise",
+        "severity": "medium",
+        "title": "~252 rows (3.6%) are likely mislabeled, 482 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "columns": [
+          "Churn"
+        ]
+      },
+      {
+        "check": "duplicates",
+        "severity": "low",
+        "title": "22 exact duplicate rows (0.3%)",
+        "detail": "Identical rows will land in both train and validation folds, inflating every cross-validation metric.",
+        "columns": []
+      },
+      {
+        "check": "schema",
+        "severity": "low",
+        "title": "1 numeric column(s) stored as text",
+        "detail": "TotalCharges",
+        "columns": [
+          "TotalCharges"
+        ]
+      }
+    ],
+    "check_errors": [],
+    "seconds": 1.8
+  },
+  {
+    "dataset": "creditcard",
+    "error": "IncompleteRead: IncompleteRead(687704 bytes read)"
+  }
+]
