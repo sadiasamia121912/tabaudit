@@ -1,6 +1,6 @@
 # tabaudit — Roadmap
 
-_Last updated: 2026-09-14. Companion to `../AI_ML_Portfolio_Projects.md` (the 3-project plan)._
+_Last updated: 2026-09-15. Companion to `../AI_ML_Portfolio_Projects.md` (the 3-project plan)._
 
 ## Where things stand
 
@@ -78,7 +78,36 @@ that goes on the résumé.
 
 **Done when:** `pip install tabaudit` works on a clean machine and the repo is public with a release.
 
-## Phase 4 — Stretch (only if Phases 1–3 are finished)
+## Phase 4 — v0.2.0: `tabaudit fix`  (1–2 days, only after 2.5 + 3.5 are done)
+
+Goal: tabaudit currently *detects and scores*. v0.2 makes it *fix what has exactly one
+correct fix*, refuse to guess on the rest, and hand the user leak-free preprocessing code.
+That last sentence is the pitch — the "auto-clean everything" version would be wrong half the
+time (see `docs/label_noise_review.md`: 5 of 10 suspects were ambiguous) and wrong silently.
+
+**Design principle (decided 2026-09-15):**
+
+| Finding | Auto-fix? | Why |
+|---|---|---|
+| Exact duplicates | ✅ safe | drop, keep first (cross-split dupes: drop from *train*, never test) |
+| Constant / ID-like columns, mixed dtypes | ✅ safe | drop / coerce |
+| Class imbalance | ❌ | resample vs. class weights vs. change metric is a model decision; resampling before the split is itself leakage |
+| Leakage | ❌ | only a human knows if `duration` is recorded after the outcome; auto-dropping would kill real features |
+| Label noise | ❌ | flag rows, never relabel or drop |
+| Normalization / scaling / encoding | ❌ never applied to the file | must be fit on train *inside* the pipeline; a "normalized CSV" bakes test statistics into training |
+
+- [ ] **4.1** `Fix` dataclass in `findings.py`: `action` (`drop_rows` | `drop_columns` | `flag_rows` | `coerce_dtype`), `params: dict`, `safe: bool`, `flag: str | None` (the CLI flag that enables an unsafe fix). Add optional `fix: Fix | None = None` to `Finding`. Include it in `to_dict()`. Tests: serialisation round-trip.
+- [ ] **4.2** Emit fixes from the checks that can — `duplicates.py` (drop_rows, safe), `schema.py` (drop_columns / coerce_dtype, safe), `leakage.py` (drop_columns, **unsafe**, flag `--drop-leaky`), `label_noise.py` (flag_rows, unsafe, flag `--flag-noise` → adds a `tabaudit_suspect` bool column). `imbalance.py` emits **no** fix — its recommendation text is the fix. Tests: each check's fix has the right rows/columns on `demo` data.
+- [ ] **4.3** `fix.py`: `apply_fixes(df, report, enabled_flags) -> (clean_df, FixPlan)`. Apply order matters: drop columns first, then drop rows, then flag rows. `FixPlan` records what was applied, what was skipped and why, row/col counts before/after. Tests: applying the plan twice is a no-op; skipped unsafe fixes are listed.
+- [ ] **4.4** `tabaudit fix data.csv --target y [--drop-leaky] [--flag-noise] [--out clean.csv]`. Prints the plan (✔ applied / ? needs a flag), writes `<name>.clean.csv` + `<name>.fixplan.json`. Exit code 0 even when unsafe fixes are skipped — skipping is the correct behaviour, not an error.
+- [ ] **4.5** `pipeline.py`: generate `<name>_pipeline.py` — a scikit-learn `ColumnTransformer` skeleton from the cleaned frame's dtypes: `StandardScaler` for numeric, `OneHotEncoder(handle_unknown="ignore")` for categoricals with ≤ 20 levels, `OrdinalEncoder` above that, `SimpleImputer` where nulls were found. Header comment explaining *why this is code and not a transformed CSV* (fit on train only). This is generated **text**, not applied transformation — keep it that way.
+- [ ] **4.6** Re-run `benchmarks/run_benchmarks.py` with `fix` on the 10 datasets → add a "rows/cols removed by safe fixes" column to `docs/benchmarks.md`. Sanity check: score after `fix` ≥ score before on every dataset.
+- [ ] **4.7** `docs/fix.md`: the table above + one worked example (bank-marketing `duration`). README section "Fixing what it finds". Bump to 0.2.0, `python -m build`, `twine upload`, tag, release.
+- [ ] **4.8** Second LinkedIn post: *"v0.2: tabaudit now fixes what it finds — and why it refuses to fix some things"*.
+
+**Done when:** `tabaudit fix` on `tabaudit demo` data drops the duplicates and constant column, leaves the leaky column in place with a clear message, and the generated pipeline file runs end-to-end on the clean CSV.
+
+## Phase 5 — Stretch (only if Phase 4 is finished)
 
 - [ ] Group / time leakage check: entity IDs that appear in both train and test; date columns where test dates precede train dates
 - [ ] Near-duplicate detection (numeric tolerance / fuzzy text)
@@ -87,7 +116,7 @@ that goes on the résumé.
 
 ## Then → Project 2 (LLM → tiny model distillation)
 
-Do **not** start until Phase 3 is complete. See `../AI_ML_Portfolio_Projects.md`.
+Do **not** start until Phase 3 is complete. Phase 4 is optional — decide after 3.5 whether v0.2 or Project 2 is the better use of the next week. See `../AI_ML_Portfolio_Projects.md`.
 
 ---
 
@@ -140,3 +169,8 @@ TestPyPI skipped (see 3.2). Two tokens were accidentally printed in the session 
 revoked and replaced. **Left:** 2.5 make repo public (your click — do this before sharing the
 PyPI link, since the README links point at the repo) and 3.5 the LinkedIn/blog post. Then
 **Project 2**. Phase 4 stretch items stay parked.
+
+**2026-09-15** — No code changes. Decided the design for v0.2 `tabaudit fix` (safe fixes
+auto-applied, unsafe ones behind flags, preprocessing emitted as sklearn code — never as a
+transformed CSV) and wrote it up as Phase 4. Still open before that: 2.5 (make repo public)
+and 3.5 (LinkedIn post).
