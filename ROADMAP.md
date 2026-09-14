@@ -58,7 +58,7 @@ that goes on the résumé.
 
 - [x] **2.1** README: paste the benchmark table under a new "Results on real datasets" section _(2026-09-14)_
 - [x] **2.2** Record a ~20 s terminal GIF of `tabaudit demo` → `docs/demo.gif`, embed in README _(2026-09-14; rebuild with `powershell docs/make_demo_gif.ps1`)_
-- [ ] **2.3** `tabaudit checks --explain` (or a `docs/checks.md` page): one paragraph per check on *how* it works and *why* the threshold is what it is
+- [x] **2.3** `docs/checks.md`: how each check works, every threshold and why, what each misses; plus how the score is computed _(2026-09-14)_
 - [ ] **2.4** Tick the "Audit results for popular public benchmark datasets" box in the README roadmap
 - [ ] **2.5** Make the repo **public** (GitHub → Settings → Danger zone → Change visibility)
 

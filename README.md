@@ -127,6 +127,8 @@ Reproduce with `python benchmarks/run_benchmarks.py` (~6 min, downloads ~50 MB).
 
 ## How the hard checks work
 
+_Short version. Every threshold, and the reason for it, is in [`docs/checks.md`](docs/checks.md)._
+
 **Leakage.** For each feature *alone*, a shallow decision tree is cross-validated against
 the target. A single column with out-of-fold AUC ≥ 0.98 (or R² ≥ 0.98 for regression) is
 almost never a legitimate signal — it is the answer written down after the fact. Below
