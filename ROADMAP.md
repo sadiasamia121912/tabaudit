@@ -26,7 +26,7 @@ tabaudit demo                  # see every check fire on synthetic data
 
 ---
 
-## Phase 1 — Real-world evidence  (2 days)  ← YOU ARE HERE
+## Phase 1 — Real-world evidence  (2 days)  ✅ done 2026-09-14
 
 Goal: a table of *real* findings on datasets everyone recognises. This is the number
 that goes on the résumé.
@@ -40,7 +40,7 @@ that goes on the résumé.
 - [x] **1.3** Run it. Expect a few minutes for `creditcard` (285k rows → sampled to 50k). _(creditcard ran 2026-09-14: 218 s)_
 - [x] **1.4** Write `docs/benchmarks.md`: one table (dataset · rows · score · grade · headline finding) + a paragraph per interesting result
 - [x] **1.4b** Fix the two leakage blind spots the benchmark exposed (breast-w false positive, bank-marketing `duration` miss) with a gap-based rule; re-run all 10 datasets. _(done 2026-09-14)_
-- [ ] **1.5** Manually verify 2–3 flagged label-noise rows — **your task, by hand**:
+- [x] **1.5** Manually verify 2–3 flagged label-noise rows _(done 2026-09-14 → `docs/label_noise_review.md`: 5 of 10 look mislabeled, 5 ambiguous, 0 false alarms)_:
   ```powershell
   python benchmarks/show_suspects.py heart-statlog --top 5 --out docs/label_noise_review.md
   python benchmarks/show_suspects.py diabetes --top 5 --out docs/label_noise_review.md
@@ -54,7 +54,7 @@ that goes on the résumé.
 
 **Done when:** `docs/benchmarks.md` has ≥ 8 datasets and you can say "found X in N of 8". _(Currently: real CRITICAL/HIGH findings in 4 of 10, at least one MEDIUM in 10 of 10.)_
 
-## Phase 2 — Polish  (1 day)
+## Phase 2 — Polish  (1 day)  ← YOU ARE HERE
 
 - [ ] **2.1** README: paste the benchmark table under a new "Results on real datasets" section
 - [ ] **2.2** Record a ~20 s terminal GIF of `tabaudit demo` (use [vhs](https://github.com/charmbracelet/vhs) or asciinema+agg) → `docs/demo.gif`, embed in README
@@ -117,4 +117,4 @@ connection, then Phase 2 — starting with the gap-based leakage fix from `docs/
 **2026-09-14** — Rebuilt `.venv`. Gap-based leakage rule implemented (`split_stand_alone` in
 `checks/leakage.py`, 7 new tests), `creditcard` finally ran, `docs/benchmarks.md` rewritten
 for 10 datasets, `benchmarks/show_suspects.py` added for task 1.5. **To resume:** same
-commands as above. Task 1.5 started: `docs/label_noise_review.md` has the 10 suspects (5 heart-statlog, 5 diabetes) with empty verdict columns and a legend explaining how to judge them. **Next: fill in that sheet** (re-run the two `show_suspects.py` commands to see the tables), then Phase 2.
+commands as above. Task 1.5 done: `docs/label_noise_review.md` has verdicts + reasoning for 10 suspects (written with Claude's help — read it before an interview; the key idea is that row numbers mean nothing, feature values decide). **Phase 1 complete. Next: Phase 2**, starting with 2.1 (paste the benchmark table into the README).

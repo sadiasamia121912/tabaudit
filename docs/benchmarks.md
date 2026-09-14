@@ -71,9 +71,11 @@ why the model plateaus.
 **Label noise (all classification datasets).** The confident-learning check estimates
 0.9–6.3 % of rows are likely mislabeled. These are *ranked suspects*, not verdicts — see
 the README for measured precision/recall on synthetic noise. The next step in this
-benchmark is manually reviewing the top-ranked rows on two or three datasets and recording
-whether they hold up: `python benchmarks/show_suspects.py heart-statlog` prints each
-suspect next to a "typical" row of each class so the call can be made by eye.
+benchmark was to review the top-ranked rows by eye: `python benchmarks/show_suspects.py
+heart-statlog` prints each suspect next to a "typical" row of each class. **Result
+([full sheet](label_noise_review.md)): of the 10 top suspects on heart-statlog and
+diabetes, 5 look genuinely mislabeled, 5 are ambiguous, 0 look like false alarms.** Every
+"mislabeled" case has all its key clinical markers on the opposite side from its label.
 
 ## What the tool got wrong
 
@@ -142,5 +144,6 @@ It now matches whole words (`class_of_service` yes, `workclass` no).
 - The first run's absolute leakage threshold over-fired on easy datasets and under-fired
   on soft leaks. Replacing it with a relative (gap-based) rule fixed both cases without
   introducing a new false positive on any of the ten datasets.
-- Label-noise estimates are consistent (1–6 %) but still need manual verification before
-  they can be quoted as fact.
+- Label-noise estimates are consistent (1–6 %). A manual review of the top 10 suspects
+  found 5 that look clearly wrong and none that look like false alarms — the *ranking* is
+  trustworthy, even though the exact percentage should not be quoted as fact.
