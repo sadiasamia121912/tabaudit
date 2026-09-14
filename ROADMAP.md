@@ -64,8 +64,8 @@ that goes on the résumé.
 
 ## Phase 3 — Publish  (½ day)
 
-- [ ] **3.1** Create a PyPI account + API token (https://pypi.org)
-- [ ] **3.2** Dry run on TestPyPI first:
+- [x] **3.1** Create a PyPI account + API token (https://pypi.org) _(done 2026-09-14; tokens live in `C:\Users\User\.pypirc`)_
+- [ ] **3.2** Dry run on TestPyPI first _(in progress — first attempt got **403 Forbidden**; see session log)_:
   ```powershell
   python -m build
   twine upload --repository testpypi dist/*
@@ -118,3 +118,18 @@ connection, then Phase 2 — starting with the gap-based leakage fix from `docs/
 `checks/leakage.py`, 7 new tests), `creditcard` finally ran, `docs/benchmarks.md` rewritten
 for 10 datasets, `benchmarks/show_suspects.py` added for task 1.5. **To resume:** same
 commands as above. Task 1.5 done: `docs/label_noise_review.md` has verdicts + reasoning for 10 suspects (written with Claude's help — read it before an interview; the key idea is that row numbers mean nothing, feature values decide). **Phase 1 complete. Next: Phase 2**, starting with 2.1 (paste the benchmark table into the README).
+
+**2026-09-14 (later)** — Phase 2 done except 2.5 (make public — your click). Phase 3
+started: `dist/` builds clean (`twine check` PASSED), wheel verified in a fresh venv,
+`.pypirc` created. `twine upload --repository testpypi dist/*` returned **403 Forbidden** —
+not retried. **To resume:**
+```powershell
+cd C:\Users\User\dev\tabaudit
+.\.venv\Scripts\activate          # if .venv was deleted: python -m venv .venv; pip install -e ".[dev]"
+pytest -q                          # expect 29 passed
+```
+Then fix the 403 before anything else — check, in this order: (1) tokens not swapped
+between `[pypi]` and `[testpypi]` in `C:\Users\User\.pypirc` (the two accounts are
+separate); (2) TestPyPI account email verified; (3) token pasted whole, `pypi-` prefix
+included, no trailing space. Then `python -m build && twine upload --repository testpypi dist/*`
+and continue with 3.2's fresh-venv install check, 3.3, 3.4.
