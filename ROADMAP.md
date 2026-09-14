@@ -117,4 +117,4 @@ connection, then Phase 2 — starting with the gap-based leakage fix from `docs/
 **2026-09-14** — Rebuilt `.venv`. Gap-based leakage rule implemented (`split_stand_alone` in
 `checks/leakage.py`, 7 new tests), `creditcard` finally ran, `docs/benchmarks.md` rewritten
 for 10 datasets, `benchmarks/show_suspects.py` added for task 1.5. **To resume:** same
-commands as above. Next: **task 1.5 is yours** (see the commands under 1.5), then Phase 2.
+commands as above. Task 1.5 started: `docs/label_noise_review.md` has the 10 suspects (5 heart-statlog, 5 diabetes) with empty verdict columns and a legend explaining how to judge them. **Next: fill in that sheet** (re-run the two `show_suspects.py` commands to see the tables), then Phase 2.
