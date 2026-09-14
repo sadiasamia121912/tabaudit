@@ -185,7 +185,7 @@ Checks run in registry order and may communicate through `ctx.excluded_features`
 - [ ] Group / time leakage: entity IDs shared across splits, features that peek into the future
 - [ ] Near-duplicate detection (fuzzy text, numeric tolerance)
 - [ ] Label-noise support for regression targets
-- [ ] Audit results for popular public benchmark datasets
+- [x] Audit results for popular public benchmark datasets — see [Results on real datasets](#results-on-real-datasets)
 - [ ] `pre-commit` hook and GitHub Action
 
 ## License
