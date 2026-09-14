@@ -56,7 +56,7 @@ that goes on the résumé.
 
 ## Phase 2 — Polish  (1 day)  ← YOU ARE HERE
 
-- [ ] **2.1** README: paste the benchmark table under a new "Results on real datasets" section
+- [x] **2.1** README: paste the benchmark table under a new "Results on real datasets" section _(2026-09-14)_
 - [ ] **2.2** Record a ~20 s terminal GIF of `tabaudit demo` (use [vhs](https://github.com/charmbracelet/vhs) or asciinema+agg) → `docs/demo.gif`, embed in README
 - [ ] **2.3** `tabaudit checks --explain` (or a `docs/checks.md` page): one paragraph per check on *how* it works and *why* the threshold is what it is
 - [ ] **2.4** Tick the "Audit results for popular public benchmark datasets" box in the README roadmap

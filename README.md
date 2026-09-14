@@ -90,6 +90,37 @@ report.to_dict()                            # JSON-serialisable
 └─────────────────────────────────────────────────────────────────── leakage ─┘
 ```
 
+## Results on real datasets
+
+Ten well-known public datasets, loaded straight from OpenML and audited with **default
+settings** — no tuning, no column dropping. Full write-up, including what the tool got
+wrong on the first run and how it was fixed: [`docs/benchmarks.md`](docs/benchmarks.md).
+
+| dataset | rows | score | headline finding |
+|---|---:|:-:|---|
+| titanic | 1 309 | 64 C | **HIGH** `boat` predicts survival alone (AUC 0.97 vs next-best 0.74) — target leakage |
+| spambase | 4 601 | 75 B | **HIGH** 391 exact duplicate rows (8.5 %) |
+| creditcard | 284 807 | 78 B | **HIGH** 578 : 1 class imbalance; 9 144 duplicate rows |
+| telco-customer-churn | 7 043 | 80 B | `TotalCharges` is numeric but stored as text; 18 conflicting-label groups |
+| breast-w | 699 | 82 B | **HIGH** 236 exact duplicate rows (34 %) |
+| bank-marketing | 45 211 | 83 B | `duration` stands far above every other feature (AUC 0.81 vs 0.65) — a documented leak |
+| adult | 48 842 | 84 B | 5 groups of rows with identical features but different labels |
+| credit-g | 1 000 | 93 A | ~6 % of rows likely mislabeled |
+| heart-statlog | 270 | 93 A | ~6 % of rows likely mislabeled |
+| diabetes | 768 | 93 A | ~5 % of rows likely mislabeled |
+
+- **4 of 10 have a CRITICAL/HIGH finding; 10 of 10 have at least one MEDIUM.** Every HIGH
+  is a documented property of the dataset (Titanic's lifeboat column, spambase and
+  breast-w duplicates, creditcard's 0.17 % fraud rate).
+- The leakage check catches both the near-perfect leak (`boat`) and the *soft* one
+  (bank-marketing `duration`, which the dataset's own documentation says to drop), while
+  correctly reporting breast-w's six strong-but-honest features as "easy task", not leakage.
+- Label-noise suspects were checked by hand on two datasets: of the 10 top-ranked rows,
+  5 look genuinely mislabeled, 5 are ambiguous, 0 look like false alarms
+  ([review sheet](docs/label_noise_review.md)).
+
+Reproduce with `python benchmarks/run_benchmarks.py` (~6 min, downloads ~50 MB).
+
 ## How the hard checks work
 
 **Leakage.** For each feature *alone*, a shallow decision tree is cross-validated against
