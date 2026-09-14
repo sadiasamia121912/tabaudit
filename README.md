@@ -12,7 +12,7 @@ pip install tabaudit
 tabaudit audit train.csv --target churn --test test.csv --html report.html
 ```
 
-![tabaudit demo](docs/demo.gif)
+![tabaudit demo](https://raw.githubusercontent.com/sadiasamia121912/tabaudit/main/docs/demo.gif)
 
 ---
 
@@ -57,7 +57,7 @@ targets are inferred automatically; omit `--target` to run only the unsupervised
 
 `--html` writes a self-contained report you can send to whoever owns the data:
 
-![tabaudit HTML report](docs/report_screenshot.png)
+![tabaudit HTML report](https://raw.githubusercontent.com/sadiasamia121912/tabaudit/main/docs/report_screenshot.png)
 
 ### Python API
 
@@ -98,7 +98,7 @@ report.to_dict()                            # JSON-serialisable
 
 Ten well-known public datasets, loaded straight from OpenML and audited with **default
 settings** — no tuning, no column dropping. Full write-up, including what the tool got
-wrong on the first run and how it was fixed: [`docs/benchmarks.md`](docs/benchmarks.md).
+wrong on the first run and how it was fixed: [`docs/benchmarks.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/benchmarks.md).
 
 | dataset | rows | score | headline finding |
 |---|---:|:-:|---|
@@ -121,13 +121,13 @@ wrong on the first run and how it was fixed: [`docs/benchmarks.md`](docs/benchma
   correctly reporting breast-w's six strong-but-honest features as "easy task", not leakage.
 - Label-noise suspects were checked by hand on two datasets: of the 10 top-ranked rows,
   5 look genuinely mislabeled, 5 are ambiguous, 0 look like false alarms
-  ([review sheet](docs/label_noise_review.md)).
+  ([review sheet](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/label_noise_review.md)).
 
 Reproduce with `python benchmarks/run_benchmarks.py` (~6 min, downloads ~50 MB).
 
 ## How the hard checks work
 
-_Short version. Every threshold, and the reason for it, is in [`docs/checks.md`](docs/checks.md)._
+_Short version. Every threshold, and the reason for it, is in [`docs/checks.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/checks.md)._
 
 **Leakage.** For each feature *alone*, a shallow decision tree is cross-validated against
 the target. A single column with out-of-fold AUC ≥ 0.98 (or R² ≥ 0.98 for regression) is
