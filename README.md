@@ -94,9 +94,13 @@ report.to_dict()                            # JSON-serialisable
 
 **Leakage.** For each feature *alone*, a shallow decision tree is cross-validated against
 the target. A single column with out-of-fold AUC ≥ 0.98 (or R² ≥ 0.98 for regression) is
-almost never a legitimate signal — it is the answer written down after the fact. Missing
-values are encoded so the tree can split on *missingness itself*, which catches the common
-"this field is only filled in for positives" leak.
+almost never a legitimate signal — it is the answer written down after the fact. Below
+that, a leak has to be an *outlier*: the sorted single-feature scores are split at their
+largest gap, and only a feature that sits ≥ 0.15 above every other one is flagged (HIGH if
+it scores ≥ 0.90, MEDIUM "soft leak" if ≥ 0.75). Several strong features bunched together
+mean the task is easy, not leaky — that case is reported at INFO. Missing values are
+encoded so the tree can split on *missingness itself*, which catches the common "this field
+is only filled in for positives" leak.
 
 **Label noise.** An out-of-fold gradient-boosting model produces class probabilities for
 every row; cleanlab's confident-learning filter flags rows whose given label it confidently

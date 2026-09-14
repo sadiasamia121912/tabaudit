@@ -20,7 +20,7 @@
         "check": "leakage",
         "severity": "high",
         "title": "1 feature(s) are suspiciously predictive alone",
-        "detail": "boat (AUC=0.967) - its *missingness alone* has AUC 0.97",
+        "detail": "boat (AUC=0.967) - its *missingness alone* has AUC 0.97. Each stands far above every other feature. Next-best feature scores 0.742.",
         "columns": [
           "boat"
         ]
@@ -56,7 +56,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 1.2
+    "seconds": 12.1
   },
   {
     "dataset": "adult",
@@ -64,13 +64,13 @@
     "target": "class",
     "n_rows": 48842,
     "n_cols": 15,
-    "score": 81,
+    "score": 84,
     "grade": "B",
     "counts": {
       "critical": 0,
       "high": 0,
       "medium": 1,
-      "low": 4,
+      "low": 3,
       "info": 0
     },
     "has_headline_issue": false,
@@ -106,19 +106,10 @@
         "columns": [
           "class"
         ]
-      },
-      {
-        "check": "leakage",
-        "severity": "low",
-        "title": "1 column name(s) reference the target 'class'",
-        "detail": "workclass",
-        "columns": [
-          "workclass"
-        ]
       }
     ],
     "check_errors": [],
-    "seconds": 6.4
+    "seconds": 16.9
   },
   {
     "dataset": "credit-g",
@@ -148,7 +139,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 0.9
+    "seconds": 10.7
   },
   {
     "dataset": "telco-customer-churn",
@@ -201,7 +192,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 1.8
+    "seconds": 10.0
   },
   {
     "dataset": "bank-marketing",
@@ -209,17 +200,35 @@
     "target": "Class",
     "n_rows": 45211,
     "n_cols": 17,
-    "score": 94,
-    "grade": "A",
+    "score": 83,
+    "grade": "B",
     "counts": {
       "critical": 0,
       "high": 0,
-      "medium": 0,
-      "low": 2,
+      "medium": 2,
+      "low": 1,
       "info": 0
     },
     "has_headline_issue": false,
     "findings": [
+      {
+        "check": "label_noise",
+        "severity": "medium",
+        "title": "~1,513 rows (3.3%) are likely mislabeled, 615 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows; estimated with duration excluded as leaky/identifier. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "columns": [
+          "Class"
+        ]
+      },
+      {
+        "check": "leakage",
+        "severity": "medium",
+        "title": "1 feature(s) stand far above all others - possible soft leak",
+        "detail": "duration (AUC=0.805). Not near-perfect, but the gap to the next-best feature is >= 0.15. Next-best feature scores 0.649.",
+        "columns": [
+          "duration"
+        ]
+      },
       {
         "check": "imbalance",
         "severity": "low",
@@ -228,19 +237,10 @@
         "columns": [
           "Class"
         ]
-      },
-      {
-        "check": "label_noise",
-        "severity": "low",
-        "title": "~352 rows (0.8%) are likely mislabeled, 1,223 more suspected",
-        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
-        "columns": [
-          "Class"
-        ]
       }
     ],
     "check_errors": [],
-    "seconds": 15.6
+    "seconds": 16.1
   },
   {
     "dataset": "breast-w",
@@ -248,14 +248,14 @@
     "target": "Class",
     "n_rows": 699,
     "n_cols": 10,
-    "score": 67,
-    "grade": "C",
+    "score": 82,
+    "grade": "B",
     "counts": {
       "critical": 0,
-      "high": 2,
+      "high": 1,
       "medium": 0,
       "low": 1,
-      "info": 0
+      "info": 1
     },
     "has_headline_issue": true,
     "findings": [
@@ -267,31 +267,31 @@
         "columns": []
       },
       {
-        "check": "leakage",
-        "severity": "high",
-        "title": "6 feature(s) are suspiciously predictive alone",
-        "detail": "Clump_Thickness (AUC=0.900); Cell_Size_Uniformity (AUC=0.970); Cell_Shape_Uniformity (AUC=0.967); Single_Epi_Cell_Size (AUC=0.909); Bare_Nuclei (AUC=0.931); Bland_Chromatin (AUC=0.932)",
+        "check": "label_noise",
+        "severity": "low",
+        "title": "~6 rows (0.9%) are likely mislabeled, 0 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
         "columns": [
-          "Clump_Thickness",
-          "Cell_Size_Uniformity",
-          "Cell_Shape_Uniformity",
-          "Single_Epi_Cell_Size",
-          "Bare_Nuclei",
-          "Bland_Chromatin"
+          "Class"
         ]
       },
       {
-        "check": "label_noise",
-        "severity": "low",
-        "title": "~15 rows (2.1%) are likely mislabeled, 0 more suspected",
-        "detail": "An out-of-fold model confidently disagrees with the given label on these rows; estimated with Bare_Nuclei, Bland_Chromatin, Cell_Shape_Uniformity, Cell_Size_Uniformity, Clump_Thickness, Single_Epi_Cell_Size excluded as leaky/identifier. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "check": "leakage",
+        "severity": "info",
+        "title": "6 features each score >= 0.90 alone - highly separable task",
+        "detail": "Cell_Size_Uniformity (AUC=0.970); Cell_Shape_Uniformity (AUC=0.967); Bland_Chromatin (AUC=0.932); Bare_Nuclei (AUC=0.931); Single_Epi_Cell_Size (AUC=0.909); Clump_Thickness (AUC=0.900). They are bunched together (no single feature stands apart), which points to an easy task rather than a leak.",
         "columns": [
-          "Class"
+          "Cell_Size_Uniformity",
+          "Cell_Shape_Uniformity",
+          "Bland_Chromatin",
+          "Bare_Nuclei",
+          "Single_Epi_Cell_Size",
+          "Clump_Thickness"
         ]
       }
     ],
     "check_errors": [],
-    "seconds": 1.4
+    "seconds": 10.1
   },
   {
     "dataset": "heart-statlog",
@@ -321,7 +321,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 1.8
+    "seconds": 11.5
   },
   {
     "dataset": "diabetes",
@@ -351,7 +351,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 1.3
+    "seconds": 10.7
   },
   {
     "dataset": "spambase",
@@ -395,10 +395,63 @@
       }
     ],
     "check_errors": [],
-    "seconds": 10.7
+    "seconds": 12.7
   },
   {
     "dataset": "creditcard",
-    "error": "IncompleteRead: IncompleteRead(687704 bytes read)"
+    "openml_version": 1,
+    "target": "Class",
+    "n_rows": 284807,
+    "n_cols": 30,
+    "score": 78,
+    "grade": "B",
+    "counts": {
+      "critical": 0,
+      "high": 1,
+      "medium": 1,
+      "low": 0,
+      "info": 2
+    },
+    "has_headline_issue": true,
+    "findings": [
+      {
+        "check": "imbalance",
+        "severity": "high",
+        "title": "Class imbalance 578:1 (minority class = 0.17%)",
+        "detail": "Accuracy is meaningless here - a model predicting the majority class scores 99.8% without learning anything.",
+        "columns": [
+          "Class"
+        ]
+      },
+      {
+        "check": "duplicates",
+        "severity": "medium",
+        "title": "9,144 exact duplicate rows (3.2%)",
+        "detail": "Identical rows will land in both train and validation folds, inflating every cross-validation metric.",
+        "columns": []
+      },
+      {
+        "check": "label_noise",
+        "severity": "info",
+        "title": "~9 rows (0.0%) are likely mislabeled, 2 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows (of a 50,000-row sample). 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "columns": [
+          "Class"
+        ]
+      },
+      {
+        "check": "leakage",
+        "severity": "info",
+        "title": "3 features each score >= 0.90 alone - highly separable task",
+        "detail": "V14 (AUC=0.935); V17 (AUC=0.933); V12 (AUC=0.917). They are bunched together (no single feature stands apart), which points to an easy task rather than a leak.",
+        "columns": [
+          "V14",
+          "V17",
+          "V12"
+        ]
+      }
+    ],
+    "check_errors": [],
+    "seconds": 218.5
   }
 ]

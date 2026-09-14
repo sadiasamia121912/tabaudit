@@ -129,6 +129,68 @@ def test_leakage_regression_r2():
     assert perfect.evidence["y_copy"]["metric"] == "R2"
 
 
+def test_leakage_easy_task_is_info_not_high():
+    # Six honest features that all predict well (like breast-w) - no single outlier.
+    n = 800
+    y = RNG.integers(0, 2, size=n)
+    df = pd.DataFrame({f"m{i}": y * 2.2 + RNG.normal(size=n) for i in range(6)})
+    df["y"] = y
+    f = leakage.run(ctx_for(df))
+    assert not any(x.severity in (Severity.CRITICAL, Severity.HIGH) for x in f)
+    info = next(x for x in f if "highly separable" in x.title)
+    assert info.severity == Severity.INFO and len(info.columns) == 6
+
+
+def test_leakage_lone_strong_feature_is_high():
+    # Same easy-ish signal, but only ONE feature carries it: it stands alone -> HIGH.
+    n = 800
+    y = RNG.integers(0, 2, size=n)
+    df = pd.DataFrame({"m0": y * 2.2 + RNG.normal(size=n)})
+    for i in range(1, 6):
+        df[f"m{i}"] = y * 0.4 + RNG.normal(size=n)  # weak, honest
+    df["y"] = y
+    f = leakage.run(ctx_for(df))
+    high = next(x for x in f if x.severity == Severity.HIGH)
+    assert high.columns == ["m0"]
+    assert high.evidence["runner_up"] < 0.75
+
+
+def test_leakage_soft_leak_is_medium():
+    # One feature far above the rest but below the 0.90 "suspicious" line (bank `duration`).
+    n = 800
+    y = RNG.integers(0, 2, size=n)
+    df = pd.DataFrame({"duration": y * 1.4 + RNG.normal(size=n)})
+    for i in range(5):
+        df[f"m{i}"] = y * 0.2 + RNG.normal(size=n)
+    df["y"] = y
+    f = leakage.run(ctx_for(df))
+    soft = next(x for x in f if "soft leak" in x.title)
+    assert soft.severity == Severity.MEDIUM
+    assert soft.columns == ["duration"]
+    assert 0.75 <= soft.evidence["duration"]["score"] < 0.90
+
+
+@pytest.mark.parametrize(
+    "col, hit", [("workclass", False), ("class_of_service", True), ("SubClass", True)]
+)
+def test_leakage_target_name_match_is_whole_word(col, hit):
+    df = base_frame(200).rename(columns={"y": "class"})
+    df[col] = RNG.normal(size=len(df))
+    f = leakage.run(ctx_for(df, target="class"))
+    named = [x for x in f if "reference the target" in x.title]
+    assert bool(named) is hit
+
+
+def test_split_stand_alone():
+    assert leakage.split_stand_alone({"a": 0.97, "b": 0.74, "c": 0.6}) == (["a"], [])
+    assert leakage.split_stand_alone({"a": 0.97, "b": 0.95, "c": 0.6}) == (["a", "b"], [])
+    crowd = {"a": 0.97, "b": 0.96, "c": 0.93, "d": 0.91, "e": 0.85}
+    assert leakage.split_stand_alone(crowd) == ([], ["a", "b", "c", "d"])
+    assert leakage.split_stand_alone({"a": 0.70, "b": 0.5}) == ([], [])  # below SOFT
+    assert leakage.split_stand_alone({"a": 0.95}) == (["a"], [])  # lone feature vs chance
+    assert leakage.split_stand_alone({}) == ([], [])
+
+
 # ------------------------------------------------------ end-to-end / API ----
 def test_run_audit_on_dataframe_scores_and_serialises():
     report = run_audit(base_frame(300), target="y", checks=["schema", "duplicates", "imbalance"])

@@ -3,10 +3,21 @@
 The core idea: a *single* feature that predicts the target almost perfectly is almost
 never a real signal - it is a proxy for the answer that was recorded after the fact
 (e.g. `churn_reason` filled in only for customers who churned).
+
+Two rules are combined:
+
+* **absolute** - a feature at AUC/R^2 >= 0.98 alone is a leak, full stop (CRITICAL);
+* **relative** - below that, a leak is an *outlier*: it stands well above every other
+  feature. Several strong features bunched together just mean the task is easy
+  (e.g. cell-size measurements for a tumour dataset), not that any of them leaks.
+  So the sorted single-feature scores are split at the biggest drop: features above a
+  drop of >= GAP are "stand-alone" (HIGH, or MEDIUM if they are only moderately strong),
+  features that are strong but part of the crowd are reported at INFO.
 """
 
 from __future__ import annotations
 
+import re
 import warnings
 
 import numpy as np
@@ -22,14 +33,31 @@ CHECK = "leakage"
 
 ID_NAME_HINTS = ("id", "uuid", "guid", "key", "index", "idx", "no", "number", "code", "ref")
 MAX_FEATURES_FOR_MODEL = 300
-SUSPICIOUS = 0.90  # single-feature AUC / R^2 above this is suspicious
-NEAR_PERFECT = 0.98
+NEAR_PERFECT = 0.98  # alone, this is leakage no matter what the other features do
+SUSPICIOUS = 0.90  # strong enough to be a leak *if* it also stands apart from the rest
+SOFT = 0.75  # a "soft" leak: moderate on its own, but far above everything else
+GAP = 0.15  # minimum drop to the next-best feature for a feature to count as stand-alone
+MAX_STAND_ALONE = 2  # more strong features than this is a crowd (easy task), not a leak
 
 
 def _looks_like_id_name(name: str) -> bool:
     low = str(name).lower()
     parts = low.replace("-", "_").split("_")
     return low.endswith("id") or any(p in ID_NAME_HINTS for p in parts)
+
+
+def _words(name: str) -> list[str]:
+    """Split a column name into lowercase words: 'workClass_id' -> ['work', 'class', 'id']."""
+    spaced = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", str(name))  # camelCase -> camel Case
+    return [w for w in re.split(r"[^a-zA-Z0-9]+", spaced.lower()) if w]
+
+
+def _mentions(col: str, target: str) -> bool:
+    """True if the target name appears as a whole word in the column name.
+
+    'class' matches 'class_of_service' but not 'workclass'.
+    """
+    return bool(target) and str(target).lower() in _words(col)
 
 
 def _id_like_columns(ctx: AuditContext) -> list[tuple[str, float]]:
@@ -115,6 +143,33 @@ def _single_feature_scores(ctx: AuditContext, skip: set[str]) -> dict[str, dict]
     return results
 
 
+def split_stand_alone(scores: dict[str, float], floor: float = 0.5) -> tuple[list[str], list[str]]:
+    """Split features into (stand-alone, crowd) using the largest gap in sorted scores.
+
+    Walk the scores from best to worst and find the biggest drop between neighbours
+    (``floor`` = chance level stands in for the neighbour of the last feature). Only the
+    first MAX_STAND_ALONE positions are considered: a leak is one or two columns, while a
+    large group of strong features is an easy task. If the drop is >= GAP and starts at a
+    feature scoring at least SOFT, everything above it "stands alone". Returns the
+    stand-alone names (best first) and the remaining names that still clear SUSPICIOUS.
+    """
+    ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+    best_drop, cut = 0.0, 0
+    for i in range(min(MAX_STAND_ALONE, len(ranked))):
+        top = ranked[i][1]
+        if top < SOFT:
+            break
+        nxt = ranked[i + 1][1] if i + 1 < len(ranked) else floor
+        drop = top - nxt
+        if drop > best_drop:
+            best_drop, cut = drop, i + 1
+    if best_drop < GAP:
+        cut = 0
+    stand_alone = [c for c, _ in ranked[:cut]]
+    crowd = [c for c, sc in ranked[cut:] if sc >= SUSPICIOUS]
+    return stand_alone, crowd
+
+
 def _missingness_auc(ctx: AuditContext, col: str) -> float | None:
     """How well does *whether the value is missing* predict the target? (binary only)"""
     if ctx.task != "classification" or ctx.y is None:
@@ -157,19 +212,25 @@ def run(ctx: AuditContext) -> list[Finding]:
 
     # ---- 2. single-feature predictive power -----------------------------
     scores = _single_feature_scores(ctx, skip=id_set)
-    perfect, suspicious = [], []
-    for col, r in scores.items():
-        if r["score"] >= NEAR_PERFECT:
-            perfect.append((col, r))
-        elif r["score"] >= SUSPICIOUS:
-            suspicious.append((col, r))
+    perfect = [c for c, r in scores.items() if r["score"] >= NEAR_PERFECT]
+    rest = {c: r["score"] for c, r in scores.items() if c not in perfect}
+    floor = 0.5 if ctx.task == "classification" else 0.0  # chance-level AUC / R^2
+    stand_alone, crowd = split_stand_alone(rest, floor=floor)
+    # A stand-alone feature is HIGH if it is strong in absolute terms, MEDIUM ("soft") if
+    # it is only moderately strong but still far above everything else.
+    suspicious = [c for c in stand_alone if rest[c] >= SUSPICIOUS]
+    soft = [c for c in stand_alone if rest[c] < SUSPICIOUS]
+    runner_up = max((sc for c, sc in rest.items() if c not in stand_alone), default=None)
 
-    def _describe(col: str, r: dict) -> str:
+    def _describe(col: str) -> str:
+        r = scores[col]
         txt = f"{col} ({r['metric']}={r['score']:.3f})"
         m_auc = _missingness_auc(ctx, col)
         if m_auc is not None and m_auc >= 0.9:
             txt += f" - its *missingness alone* has AUC {m_auc:.2f}"
         return txt
+
+    gap_note = f" Next-best feature scores {runner_up:.3f}." if runner_up is not None else ""
 
     if perfect:
         findings.append(
@@ -177,12 +238,12 @@ def run(ctx: AuditContext) -> list[Finding]:
                 check=CHECK,
                 severity=Severity.CRITICAL,
                 title=f"{len(perfect)} feature(s) predict the target almost perfectly on their own",
-                detail="; ".join(_describe(c, r) for c, r in perfect),
+                detail="; ".join(_describe(c) for c in perfect),
                 recommendation="This is target leakage: the column encodes the answer (recorded "
                 "after the outcome, or derived from it). Remove it - any model trained with it "
                 "will look excellent and fail in production.",
-                columns=[c for c, _ in perfect],
-                evidence={c: r for c, r in perfect},
+                columns=perfect,
+                evidence={c: scores[c] for c in perfect},
             )
         )
     if suspicious:
@@ -191,22 +252,55 @@ def run(ctx: AuditContext) -> list[Finding]:
                 check=CHECK,
                 severity=Severity.HIGH,
                 title=f"{len(suspicious)} feature(s) are suspiciously predictive alone",
-                detail="; ".join(_describe(c, r) for c, r in suspicious),
+                detail="; ".join(_describe(c) for c in suspicious)
+                + f". Each stands far above every other feature.{gap_note}",
                 recommendation="Verify each is genuinely available at prediction time. "
                 "If it is computed from, or after, the outcome, drop it.",
-                columns=[c for c, _ in suspicious],
-                evidence={c: r for c, r in suspicious},
+                columns=suspicious,
+                evidence={c: scores[c] for c in suspicious} | {"runner_up": runner_up},
+            )
+        )
+    if soft:
+        findings.append(
+            Finding(
+                check=CHECK,
+                severity=Severity.MEDIUM,
+                title=f"{len(soft)} feature(s) stand far above all others - possible soft leak",
+                detail="; ".join(_describe(c) for c in soft)
+                + f". Not near-perfect, but the gap to the next-best feature is >= {GAP:.2f}."
+                + gap_note,
+                recommendation="A single dominant feature is often something recorded during "
+                "or after the outcome (e.g. call duration, days-in-hospital). Check when it "
+                "becomes known; if that is after the prediction moment, drop it.",
+                columns=soft,
+                evidence={c: scores[c] for c in soft} | {"runner_up": runner_up},
+            )
+        )
+    if crowd:
+        findings.append(
+            Finding(
+                check=CHECK,
+                severity=Severity.INFO,
+                title=f"{len(crowd)} features each score >= {SUSPICIOUS:.2f} alone - "
+                "highly separable task",
+                detail="; ".join(_describe(c) for c in crowd)
+                + ". They are bunched together (no single feature stands apart), which points "
+                "to an easy task rather than a leak.",
+                recommendation="No action needed unless the task should *not* be this easy; "
+                "then check whether these columns are all derived from the same source as "
+                "the target.",
+                columns=crowd,
+                evidence={c: scores[c] for c in crowd},
             )
         )
 
     # ---- 3. names that reference the target -----------------------------
-    flagged = {c for c, _ in perfect} | {c for c, _ in suspicious}
+    flagged = set(perfect) | set(suspicious) | set(soft)
     ctx.excluded_features |= flagged
-    t = str(ctx.target).lower()
     named = [
         c
         for c in ctx.feature_cols
-        if t and t in str(c).lower() and c not in flagged and c not in id_set
+        if _mentions(c, ctx.target) and c not in flagged and c not in id_set
     ]
     if named:
         findings.append(
