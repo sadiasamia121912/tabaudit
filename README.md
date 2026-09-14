@@ -12,7 +12,7 @@ pip install tabaudit
 tabaudit audit train.csv --target churn --test test.csv --html report.html
 ```
 
-![tabaudit HTML report](docs/report_screenshot.png)
+![tabaudit demo](docs/demo.gif)
 
 ---
 
@@ -54,6 +54,10 @@ tabaudit audit data.csv -t label -c leakage,duplicates --max-rows 20000 --fail-u
 
 Supported inputs: CSV, TSV, Parquet, Feather, JSON-lines. Classification and regression
 targets are inferred automatically; omit `--target` to run only the unsupervised checks.
+
+`--html` writes a self-contained report you can send to whoever owns the data:
+
+![tabaudit HTML report](docs/report_screenshot.png)
 
 ### Python API
 
