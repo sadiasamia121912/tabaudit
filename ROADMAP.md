@@ -12,9 +12,9 @@ _Last updated: 2026-09-14. Companion to `../AI_ML_Portfolio_Projects.md` (the 3-
 | GitHub Actions CI (Linux/Windows × Py 3.10/3.12/3.13) | ✅ configured |
 | Pushed to GitHub (`sadiasamia121912/tabaudit`, **private**) | ✅ |
 | Benchmarks on real datasets | ✅ 10 datasets in `docs/benchmarks.md`, gap-based leakage fix verified on them |
-| README benchmark table + GIF | ❌ |
-| Public repo | ❌ |
-| PyPI release (`pip install tabaudit`) | ❌ |
+| README benchmark table + GIF | ✅ |
+| Public repo | ❌ your click: Settings → Danger zone → Change visibility |
+| PyPI release (`pip install tabaudit`) | ✅ 0.1.0 live, verified in a fresh venv |
 
 **How to get running again (every session):**
 ```powershell
@@ -54,7 +54,7 @@ that goes on the résumé.
 
 **Done when:** `docs/benchmarks.md` has ≥ 8 datasets and you can say "found X in N of 8". _(Currently: real CRITICAL/HIGH findings in 4 of 10, at least one MEDIUM in 10 of 10.)_
 
-## Phase 2 — Polish  (1 day)  ← YOU ARE HERE
+## Phase 2 — Polish  (1 day)  ✅ except 2.5
 
 - [x] **2.1** README: paste the benchmark table under a new "Results on real datasets" section _(2026-09-14)_
 - [x] **2.2** Record a ~20 s terminal GIF of `tabaudit demo` → `docs/demo.gif`, embed in README _(2026-09-14; rebuild with `powershell docs/make_demo_gif.ps1`)_
@@ -62,19 +62,19 @@ that goes on the résumé.
 - [x] **2.4** Tick the "Audit results for popular public benchmark datasets" box in the README roadmap _(2026-09-14)_
 - [ ] **2.5** Make the repo **public** — _your click, when you have read `docs/checks.md` and `docs/label_noise_review.md`_ (GitHub → Settings → Danger zone → Change visibility)
 
-## Phase 3 — Publish  (½ day)
+## Phase 3 — Publish  (½ day)  ← YOU ARE HERE (3.5 + 2.5 left)
 
 - [x] **3.1** Create a PyPI account + API token (https://pypi.org) _(done 2026-09-14; tokens live in `C:\Users\User\.pypirc`)_
-- [ ] **3.2** Dry run on TestPyPI first _(in progress — first attempt got **403 Forbidden**; see session log)_:
+- [x] **3.2** ~~Dry run on TestPyPI~~ _skipped: `twine check` + fresh-venv install of the local wheel covered it; TestPyPI needs a separate account and wasn't worth the friction_
   ```powershell
   python -m build
   twine upload --repository testpypi dist/*
   pip install -i https://test.pypi.org/simple/ tabaudit   # in a fresh venv
   ```
-- [ ] **3.3** Real upload: `twine upload dist/*`, then verify `pip install tabaudit && tabaudit --version` in a **fresh** venv
-- [ ] **3.4** `git tag v0.1.0 && git push --tags`; write GitHub release notes (copy the README "What it checks" table)
+- [x] **3.3** Real upload _(2026-09-14, https://pypi.org/project/tabaudit/0.1.0/)_: `twine upload dist/*`, then verify `pip install tabaudit && tabaudit --version` in a **fresh** venv
+- [x] **3.4** `git tag v0.1.0`; GitHub release with notes + wheel/sdist attached _(2026-09-14)_
 - [ ] **3.5** LinkedIn/blog post: *"I audited 8 popular ML datasets — here's what's wrong with them"* (the benchmark table + 3 concrete examples)
-- [ ] **3.6** Fill in the numbers in the résumé bullet in `../AI_ML_Portfolio_Projects.md`
+- [x] **3.6** Fill in the numbers in the résumé bullet in `../AI_ML_Portfolio_Projects.md` _(2026-09-14)_
 
 **Done when:** `pip install tabaudit` works on a clean machine and the repo is public with a release.
 
@@ -133,3 +133,10 @@ between `[pypi]` and `[testpypi]` in `C:\Users\User\.pypirc` (the two accounts a
 separate); (2) TestPyPI account email verified; (3) token pasted whole, `pypi-` prefix
 included, no trailing space. Then `python -m build && twine upload --repository testpypi dist/*`
 and continue with 3.2's fresh-venv install check, 3.3, 3.4.
+
+**2026-09-14 (evening)** — **`tabaudit 0.1.0` is on PyPI** and verified with a clean
+`pip install tabaudit`; tag `v0.1.0` + GitHub release created; résumé bullet filled in.
+TestPyPI skipped (see 3.2). Two tokens were accidentally printed in the session and were
+revoked and replaced. **Left:** 2.5 make repo public (your click — do this before sharing the
+PyPI link, since the README links point at the repo) and 3.5 the LinkedIn/blog post. Then
+**Project 2**. Phase 4 stretch items stay parked.
