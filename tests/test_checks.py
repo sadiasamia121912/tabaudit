@@ -94,11 +94,10 @@ def test_label_noise_exposes_flagged_rows():
     assert len(ev["rows_likely"]) == ev["n_likely"]
     assert set(ev["rows_likely"]) <= set(ev["rows"])
     assert ev["rows"][: len(ev["top_suspects"])] == [s["row"] for s in ev["top_suspects"]]
-    # Recall is deliberately not asserted high: cleanlab's confident_learning filter only
-    # flags a third to a half of these flips even though the model gives them <20% probability
-    # (see ROADMAP 4.4). This floor pins current behaviour so a regression is noticed.
+    # With the self-confidence rule (4.4) the model's <20% belief in a planted label is enough
+    # to flag it; the cleanlab filter this replaced recovered only 7-11 of these 20.
     recovered = set(ev["rows"]) & set(flipped)
-    assert len(recovered) >= 5, f"only {len(recovered)}/20 planted flips were flagged"
+    assert len(recovered) >= 17, f"only {len(recovered)}/20 planted flips were flagged"
 
 
 # ------------------------------------------------------------- imbalance ----

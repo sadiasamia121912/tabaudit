@@ -232,34 +232,58 @@ the first roadmap item.
 **What it catches.** Rows whose label is probably wrong — a ranked list of suspects, not a
 verdict.
 
-**How.** This is *confident learning* (Northcutt et al., 2021), via the `cleanlab`
-library:
+**How.** Self-confidence of an out-of-fold model:
 
 1. Train a gradient-boosting classifier with 5-fold cross-validation and keep the
    **out-of-fold** predicted probabilities for every row — each row is predicted by a
    model that never saw it, so the model cannot simply have memorised the given label.
-2. `cleanlab` estimates, from those probabilities, how often each class is *actually*
-   labelled as each other class, and flags the rows whose given label is inconsistent with
-   that estimate.
-3. tabaudit then splits the flagged rows into **likely** (the model gives the given label
-   **< 20 %** probability) and merely **suspected** (flagged by cleanlab but the model is
-   less sure).
+2. For each row take the probability the model gives the row's *given* label — its
+   **self-confidence**. A low value means the model, having learned the pattern from the
+   other rows, confidently disagrees with the label.
+3. Two tiers, both plain thresholds: **likely** mislabeled when self-confidence is
+   **< 20 %**, **suspected** when **< 30 %**. Suspects are ranked lowest-confidence first.
 
 The model is deliberately regularised (200 rounds at learning-rate 0.05, at most 15
-leaves, minimum 40 rows per leaf, L2 = 1, early stopping). An over-confident model makes
-cleanlab over-flag, because it treats every row it gets wrong as a labelling error rather
-than its own mistake.
+leaves, minimum 40 rows per leaf, L2 = 1, early stopping). An over-confident model calls
+its own mistakes label errors.
 
 Severity is by the *likely* fraction: **≥ 8 % HIGH, ≥ 3 % MEDIUM, ≥ 0.5 % LOW, else
-INFO.** The 20 % cut-off and these bands were set on the synthetic benchmark in
-`examples/validate_label_noise.py`, where the true flipped rows are known: 20 % is the
-point where "likely" precision becomes useful (60–73 % at realistic noise rates) without
-recall collapsing. The top 25 suspects are listed in the report, ranked by how little the
-model believes the given label.
+INFO.**
 
-**How to read the number.** The measured precision means that of the rows called
-"likely", roughly two in three are real errors at 6 % noise — so the count is an
-*estimate*, and the value is in the ranked list. A manual review of the top suspects on
+**Why these rules and thresholds — and why not cleanlab.** v0.1.0 used the `cleanlab`
+library's *confident learning* filter (Northcutt et al., 2021) to pick suspects, and
+"likely" was that filter *and* self-confidence < 20 %. The fault-injection benchmark
+(`benchmarks/sweep_label_noise.py`, `docs/evaluation.md`) planted 3 % random label flips in
+each of 10 public datasets × 3 seeds, computed the out-of-fold probabilities once, and scored
+every rule on the same matrix. "Precision excl. baseline" ignores rows the same rule already
+flagged *before* injection — those are the dataset's own noise, not false alarms.
+
+| rule | precision (raw) | precision excl. baseline | recall | F1 | rows flagged | note |
+|---|---:|---:|---:|---:|---:|---|
+| `sc<0.3` | 0.35 | 0.70 | 0.73 | 0.71 | 7.9 % | **chosen: suspected** |
+| `sc<0.2` | 0.42 | 0.80 | 0.64 | 0.70 | 4.9 % | **chosen: likely** |
+| `sc<0.4` | 0.29 | 0.61 | 0.81 | 0.68 | 11.8 % |  |
+| `cl & sc<0.3` | 0.42 | 0.71 | 0.63 | 0.66 | 5.9 % |  |
+| `cl & sc<0.2` | 0.45 | 0.79 | 0.57 | 0.66 | 4.3 % | v0.1.0 likely |
+| `cl & sc<0.4` | 0.39 | 0.65 | 0.65 | 0.64 | 7.2 % |  |
+| `cl` | 0.37 | 0.62 | 0.66 | 0.62 | 8.4 % | v0.1.0 suspected |
+| `sc<0.1` | 0.56 | 0.84 | 0.45 | 0.56 | 2.3 % |  |
+| `cl & sc<0.1` | 0.56 | 0.84 | 0.42 | 0.53 | 2.2 % |  |
+
+Two things fell out. Adding cleanlab's filter on top of `sc<0.2` left precision unchanged
+(0.79 vs 0.80) and cost 7 points of recall: its per-class threshold is the class's *mean*
+self-confidence, which on an easy task is ~0.94, so a row the model is 85 % sure is
+mislabeled does not count as "confident enough". And `sc<0.3` beat the bare cleanlab filter
+on precision, recall, F1 *and* rows flagged. So both tiers became self-confidence thresholds
+and the dependency was removed. `0.3` is not the headline tier because it would have pushed
+four of the ten datasets (titanic, credit-g, heart-statlog, diabetes) to HIGH at 70 %
+precision; `0.2` changes no dataset's severity. (`argmax ≠ label ∧ sc<t` was also tested and
+is identical to `sc<t` on binary targets, since `sc < 0.5` already implies the model prefers
+the other class.)
+
+**How to read the number.** Of the rows called "likely", about four in five of the *newly*
+flagged ones were real planted errors, and about two in three of the planted errors were
+found — so the count is an *estimate*, and the value is in the ranked list. A manual review of the top suspects on
 two public datasets (`label_noise_review.md`) found 5 of 10 clearly wrong, 5 ambiguous,
 none obviously fine.
 

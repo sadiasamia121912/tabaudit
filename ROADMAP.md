@@ -115,7 +115,7 @@ columns, what fraction we wrongly accused.
   `run_audit`, score against `truth`. Write `benchmarks/eval_results.json`. Cap `max_rows`
   at 20 000 for this run (label-noise CV is the bottleneck; `creditcard` alone was 218 s).
   Print a table: check · precision · recall · FPR, mean ± sd over seeds.
-- [ ] **4.4** Calibrate, don't guess. `LIKELY_MAX_SELF_CONFIDENCE = 0.2` in
+- [x] **4.4** _(done 2026-09-15: `benchmarks/sweep_label_noise.py`; both tiers are now self-confidence thresholds 0.2 / 0.3; cleanlab dependency removed; real-data scores unchanged)_ Calibrate, don't guess. `LIKELY_MAX_SELF_CONFIDENCE = 0.2` in
   `checks/label_noise.py` is a made-up number — sweep {0.1, 0.2, 0.3, 0.4} against the
   injected truth and keep the value with the best F1 on the "likely" tier. Do the same for
   the leakage gap rule *only if* FPR > 5 %. Change a constant only when the data says so, and
@@ -307,3 +307,15 @@ positive class fail on the old code and pass on the new. `evaluate.py`: `leak_mi
 scores identical; only creditcard's INFO list grew from 3 to 5 strong features.
 `docs/checks.md` and `docs/benchmarks.md` updated. **Next: 4.4** (label-noise threshold and
 filter sweep). Resume: activate `.venv`, `pytest -q` → 46 passed.
+
+**2026-09-15 (late night)** — **4.4 done.** `benchmarks/sweep_label_noise.py` computes the
+out-of-fold probabilities once per (dataset, seed) and scores 13 rule × threshold variants on
+the same matrix. Result: cleanlab's confident-learning filter added nothing over plain
+self-confidence (same precision, −7 recall), and `sc<0.3` beat bare cleanlab on every metric.
+**Decision (yours): remove cleanlab.** `label_noise.py` now: likely = self-conf < 0.2,
+suspected = < 0.3; dependency dropped; verified tests + demo pass with cleanlab uninstalled.
+Planted-flip numbers (per-tier baseline): likely 0.79/0.57 → **0.80/0.64**, suspected
+0.62/0.66 → **0.70/0.73**. All 10 real-data scores and severities unchanged. Docs, README table
+(re-measured), résumé wording updated. `evaluate.py` now uses per-tier baselines. **Next: 4.5**
+(`docs/evaluation.md`, README section, résumé numbers). Resume: activate `.venv`
+(`pip install -e ".[dev]"` if rebuilt — cleanlab no longer needed), `pytest -q` → 46 passed.

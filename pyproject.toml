@@ -11,7 +11,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [{ name = "Sadia Samia" }]
-keywords = ["machine-learning", "data-quality", "data-leakage", "label-noise", "cleanlab", "audit"]
+keywords = ["machine-learning", "data-quality", "data-leakage", "label-noise", "audit"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -27,7 +27,6 @@ dependencies = [
     "pandas>=2.0",
     "numpy>=1.24",
     "scikit-learn>=1.3",
-    "cleanlab>=2.5",
     "typer>=0.12",
     "rich>=13.0",
     "jinja2>=3.1",

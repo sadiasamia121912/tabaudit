@@ -1,54 +1,40 @@
-"""How well does the label-noise check recover *known* flipped labels?
+"""How well does the label-noise check recover *known* flipped labels on the demo data?
 
 The demo generator knows which labels it flipped, so we can score the detector with
 precision / recall.   Run:  python examples/validate_label_noise.py [noise_rate]
+
+For the same measurement on ten real public datasets see benchmarks/evaluate.py and
+benchmarks/sweep_label_noise.py - those are what set the thresholds.
 """
 
 from __future__ import annotations
 
 import sys
 
-import numpy as np
-from cleanlab.filter import find_label_issues
-from sklearn.model_selection import StratifiedKFold, cross_val_predict
-
-from tabaudit.checks.label_noise import LIKELY_MAX_SELF_CONFIDENCE, make_model
-from tabaudit.context import AuditContext
+from tabaudit import run_audit
 from tabaudit.demo import make_churn_dataset
-from tabaudit.loader import infer_task
 
 
 def evaluate(noise_rate: float, seed: int = 7) -> dict:
     train, _, flipped = make_churn_dataset(seed=seed, noise_rate=noise_rate, return_truth=True)
-    flipped = flipped.to_numpy()
+    truth = set(train.index[flipped.to_numpy()])
 
-    ctx = AuditContext(df=train, target="churn", task=infer_task(train["churn"]))
-    ctx.excluded_features |= {"customer_id", "churn_reason"}  # what the leakage check would do
-    X = ctx.X_encoded_clean.to_numpy()
-    y = train["churn"].to_numpy()
+    # leakage runs first so customer_id / churn_reason are excluded from the model's inputs
+    report = run_audit(train, target="churn", checks=["leakage", "label_noise"])
+    ev = next(f.evidence for f in report.findings if f.check == "label_noise")
 
-    cv = StratifiedKFold(5, shuffle=True, random_state=42)
-    probs = cross_val_predict(make_model(42), X, y, cv=cv, method="predict_proba")
-    suspected = find_label_issues(
-        labels=y, pred_probs=probs, filter_by="confident_learning", n_jobs=1
-    )
-    self_conf = probs[np.arange(len(y)), y]
-    likely = suspected & (self_conf < LIKELY_MAX_SELF_CONFIDENCE)
-    ranked = np.flatnonzero(suspected)
-    ranked = ranked[np.argsort(self_conf[ranked])]
-
-    def pr(mask):
-        tp = int((mask & flipped).sum())
-        return tp / max(1, mask.sum()), tp / max(1, flipped.sum())
+    def pr(rows: list[int]) -> tuple[float, float]:
+        hit = len(set(rows) & truth)
+        return hit / max(1, len(rows)), hit / max(1, len(truth))
 
     return {
-        "planted": int(flipped.sum()),
-        "planted_frac": float(flipped.mean()),
-        "likely": int(likely.sum()),
-        "likely_pr": pr(likely),
-        "suspected": int(suspected.sum()),
-        "suspected_pr": pr(suspected),
-        "top25_precision": float(flipped[ranked[:25]].mean()),
+        "planted": len(truth),
+        "planted_frac": len(truth) / len(train),
+        "likely": len(ev["rows_likely"]),
+        "likely_pr": pr(ev["rows_likely"]),
+        "suspected": len(ev["rows"]),
+        "suspected_pr": pr(ev["rows"]),
+        "top25_precision": len(set(ev["rows"][:25]) & truth) / 25,
     }
 
 

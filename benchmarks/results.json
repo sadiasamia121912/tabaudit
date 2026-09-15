@@ -28,8 +28,8 @@
       {
         "check": "label_noise",
         "severity": "medium",
-        "title": "~76 rows (5.8%) are likely mislabeled, 26 more suspected",
-        "detail": "An out-of-fold model confidently disagrees with the given label on these rows; estimated with boat, name excluded as leaky/identifier. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "title": "~76 rows (5.8%) are likely mislabeled, 38 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows; estimated with boat, name excluded as leaky/identifier. 'Likely' = model gives the given label <20% probability; 'suspected' = <30%. Label noise caps achievable accuracy and misleads model selection.",
         "columns": [
           "survived"
         ]
@@ -56,7 +56,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 1.4
+    "seconds": 2.9
   },
   {
     "dataset": "adult",
@@ -101,15 +101,15 @@
       {
         "check": "label_noise",
         "severity": "low",
-        "title": "~794 rows (1.6%) are likely mislabeled, 955 more suspected",
-        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "title": "~1,360 rows (2.8%) are likely mislabeled, 1,225 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = <30%. Label noise caps achievable accuracy and misleads model selection.",
         "columns": [
           "class"
         ]
       }
     ],
     "check_errors": [],
-    "seconds": 5.6
+    "seconds": 15.3
   },
   {
     "dataset": "credit-g",
@@ -131,15 +131,15 @@
       {
         "check": "label_noise",
         "severity": "medium",
-        "title": "~61 rows (6.1%) are likely mislabeled, 68 more suspected",
-        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "title": "~61 rows (6.1%) are likely mislabeled, 41 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = <30%. Label noise caps achievable accuracy and misleads model selection.",
         "columns": [
           "class"
         ]
       }
     ],
     "check_errors": [],
-    "seconds": 0.9
+    "seconds": 2.3
   },
   {
     "dataset": "telco-customer-churn",
@@ -168,8 +168,8 @@
       {
         "check": "label_noise",
         "severity": "medium",
-        "title": "~252 rows (3.6%) are likely mislabeled, 482 more suspected",
-        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "title": "~289 rows (4.1%) are likely mislabeled, 314 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = <30%. Label noise caps achievable accuracy and misleads model selection.",
         "columns": [
           "Churn"
         ]
@@ -192,7 +192,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 1.4
+    "seconds": 4.2
   },
   {
     "dataset": "bank-marketing",
@@ -214,8 +214,8 @@
       {
         "check": "label_noise",
         "severity": "medium",
-        "title": "~1,513 rows (3.3%) are likely mislabeled, 615 more suspected",
-        "detail": "An out-of-fold model confidently disagrees with the given label on these rows; estimated with duration excluded as leaky/identifier. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "title": "~2,544 rows (5.6%) are likely mislabeled, 656 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows; estimated with duration excluded as leaky/identifier. 'Likely' = model gives the given label <20% probability; 'suspected' = <30%. Label noise caps achievable accuracy and misleads model selection.",
         "columns": [
           "Class"
         ]
@@ -240,7 +240,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 5.2
+    "seconds": 14.1
   },
   {
     "dataset": "breast-w",
@@ -269,8 +269,8 @@
       {
         "check": "label_noise",
         "severity": "low",
-        "title": "~6 rows (0.9%) are likely mislabeled, 0 more suspected",
-        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "title": "~14 rows (2.0%) are likely mislabeled, 3 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = <30%. Label noise caps achievable accuracy and misleads model selection.",
         "columns": [
           "Class"
         ]
@@ -291,7 +291,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 0.7
+    "seconds": 1.4
   },
   {
     "dataset": "heart-statlog",
@@ -313,15 +313,15 @@
       {
         "check": "label_noise",
         "severity": "medium",
-        "title": "~17 rows (6.3%) are likely mislabeled, 4 more suspected",
-        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "title": "~17 rows (6.3%) are likely mislabeled, 10 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = <30%. Label noise caps achievable accuracy and misleads model selection.",
         "columns": [
           "class"
         ]
       }
     ],
     "check_errors": [],
-    "seconds": 0.7
+    "seconds": 1.6
   },
   {
     "dataset": "diabetes",
@@ -343,15 +343,15 @@
       {
         "check": "label_noise",
         "severity": "medium",
-        "title": "~41 rows (5.3%) are likely mislabeled, 62 more suspected",
-        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "title": "~41 rows (5.3%) are likely mislabeled, 34 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = <30%. Label noise caps achievable accuracy and misleads model selection.",
         "columns": [
           "class"
         ]
       }
     ],
     "check_errors": [],
-    "seconds": 0.6
+    "seconds": 1.4
   },
   {
     "dataset": "spambase",
@@ -387,15 +387,15 @@
       {
         "check": "label_noise",
         "severity": "low",
-        "title": "~55 rows (1.2%) are likely mislabeled, 0 more suspected",
-        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "title": "~92 rows (2.0%) are likely mislabeled, 49 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows. 'Likely' = model gives the given label <20% probability; 'suspected' = <30%. Label noise caps achievable accuracy and misleads model selection.",
         "columns": [
           "class"
         ]
       }
     ],
     "check_errors": [],
-    "seconds": 3.6
+    "seconds": 10.2
   },
   {
     "dataset": "creditcard",
@@ -433,8 +433,8 @@
       {
         "check": "label_noise",
         "severity": "info",
-        "title": "~9 rows (0.0%) are likely mislabeled, 2 more suspected",
-        "detail": "An out-of-fold model confidently disagrees with the given label on these rows (of a 50,000-row sample). 'Likely' = model gives the given label <20% probability; 'suspected' = flagged by confident learning (cleanlab). Label noise caps achievable accuracy and misleads model selection.",
+        "title": "~22 rows (0.0%) are likely mislabeled, 4 more suspected",
+        "detail": "An out-of-fold model confidently disagrees with the given label on these rows (of a 50,000-row sample). 'Likely' = model gives the given label <20% probability; 'suspected' = <30%. Label noise caps achievable accuracy and misleads model selection.",
         "columns": [
           "Class"
         ]
@@ -454,6 +454,6 @@
       }
     ],
     "check_errors": [],
-    "seconds": 19.6
+    "seconds": 41.6
   }
 ]

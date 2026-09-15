@@ -159,10 +159,11 @@ def score_injection(inj: Injection, target: str, original_cols: list[str], basel
         )
         truth = set(inj.rows) & set(ctx.sample_index())
         suspected, likely = noise_rows(report)
-        base = baseline["noise_rows"]
         for tier, pred in (("suspected", suspected), ("likely", likely)):
             m = prf(pred, truth)
-            fresh = pred - base  # rows the tool did NOT already flag before we injected
+            # rows this tier did NOT already flag before we injected (same tier's baseline,
+            # so a broad tier is not credited for exclusions a narrow tier never made)
+            fresh = pred - baseline["noise_rows"][tier]
             m["precision_excl_baseline"] = (
                 round(len(fresh & truth) / len(fresh), 4) if fresh else None
             )
@@ -200,13 +201,14 @@ def evaluate_dataset(
 ) -> list[dict]:
     """Baseline once, then every seed x fault. Returns one result dict per run."""
     base_report = run_audit(df, target=target, checks=["leakage", "label_noise"], max_rows=MAX_ROWS)
+    base_suspected, base_likely = noise_rows(base_report)
     baseline = {
         "leak_columns": sorted(leak_flagged(base_report)),
-        "noise_rows": noise_rows(base_report)[0],
+        "noise_rows": {"suspected": base_suspected, "likely": base_likely},
     }
     console.print(
         f"  base: {len(df):,} rows x {df.shape[1]} cols; already flags "
-        f"{len(baseline['noise_rows']):,} noisy rows, leaks {baseline['leak_columns'] or 'none'}"
+        f"{len(base_suspected):,} noisy rows, leaks {baseline['leak_columns'] or 'none'}"
     )
     results = []
     for seed in seeds:
@@ -219,7 +221,7 @@ def evaluate_dataset(
                 "fault": fault,
                 "n_rows": len(df),
                 "baseline_leak_columns": baseline["leak_columns"],
-                "baseline_n_noise_rows": len(baseline["noise_rows"]),
+                "baseline_n_noise_rows": len(baseline["noise_rows"]["suspected"]),
             }
             try:
                 row.update(score_injection(inj, target, list(df.columns), baseline))

@@ -71,7 +71,7 @@ why the model plateaus.
 
 ## Findings that need human judgement
 
-**Label noise (all classification datasets).** The confident-learning check estimates
+**Label noise (all classification datasets).** The label-noise check estimates
 0.9–6.3 % of rows are likely mislabeled. These are *ranked suspects*, not verdicts — see
 the README for measured precision/recall on synthetic noise. The next step in this
 benchmark was to review the top-ranked rows by eye: `python benchmarks/show_suspects.py

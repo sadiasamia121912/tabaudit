@@ -29,7 +29,7 @@ hard part is *noticing* them. `tabaudit` makes the check automatic, fast, and re
 | ------------- | --------------------------------------------------------------------------------------------------------- | -------- |
 | `leakage`     | single features that predict the target almost perfectly on their own (incl. *missingness* leaks), identifier columns, columns named after the target | CRITICAL / HIGH / MEDIUM |
 | `duplicates`  | exact duplicate rows, feature-identical rows with conflicting labels, **test rows that also appear in train** | CRITICAL → LOW |
-| `label_noise` | probably-mislabeled rows via confident learning ([cleanlab](https://github.com/cleanlab/cleanlab)), ranked and tiered | HIGH → INFO |
+| `label_noise` | probably-mislabeled rows from an out-of-fold model's self-confidence, thresholds calibrated by fault injection, ranked and tiered | HIGH → INFO |
 | `imbalance`   | class ratio, classes with < 10 examples                                                                   | HIGH → LOW |
 | `schema`      | ≥ 50 % missing columns, missing labels, constant / near-constant columns, numbers stored as text, leftover index columns | HIGH → INFO |
 
@@ -140,14 +140,16 @@ encoded so the tree can split on *missingness itself*, which catches the common 
 is only filled in for positives" leak.
 
 **Label noise.** An out-of-fold gradient-boosting model produces class probabilities for
-every row; cleanlab's confident-learning filter flags rows whose given label it confidently
-contradicts. The model is deliberately regularised because an over-confident model makes
-cleanlab over-flag. Leaky and identifier columns found by the `leakage` check are excluded
-first — otherwise the leak makes the model agree with every wrong label and the noise is
-invisible.
+every row; a row is a suspect when the model gives its *given* label little probability.
+The model is deliberately regularised so its own mistakes are not read as label errors.
+Leaky and identifier columns found by the `leakage` check are excluded first — otherwise
+the leak makes the model agree with every wrong label and the noise is invisible.
 
 Suspects are reported in two tiers: **likely** (model gives the given label < 20 %
-probability) and **suspected** (any confident-learning flag), ranked most-confident first.
+probability) and **suspected** (< 30 %), ranked most-confident first. The thresholds were
+set by planting label flips in 10 public datasets and measuring precision/recall
+(`docs/checks.md`); the same test showed cleanlab's confident-learning filter, used in
+v0.1.0, added nothing over self-confidence, so it was removed.
 
 ### Measured on known ground truth
 
@@ -157,14 +159,15 @@ AUC ≈ 0.88):
 
 | planted noise | flipped rows | "likely" flagged | likely precision / recall | top-25 precision |
 | ------------- | ------------ | ---------------- | ------------------------- | ---------------- |
-| 2.2 %         | 110          | 187              | 32 % / 55 %               | 56 %             |
-| 6.4 %         | 317          | 313              | 60 % / 59 %               | 72 %             |
-| 10.3 %        | 514          | 420              | 73 % / 60 %               | 72 %             |
+| 2.2 %         | 110          | 299              | 24 % / 66 %               | 60 %             |
+| 6.4 %         | 317          | 380              | 54 % / 65 %               | 72 %             |
+| 10.3 %        | 514          | 425              | 71 % / 59 %               | 76 %             |
 
 Random label flips on rows the model is genuinely unsure about are indistinguishable from
 correct labels, so no detector can reach high precision *and* recall here. The point is
 the ranked review list, not the raw count — and the count is a useful estimate at realistic
-noise rates.
+noise rates. The same measurement on ten *real* datasets, with the dataset's own noise
+accounted for, is in `docs/checks.md` (label noise) and `docs/evaluation.md`.
 
 ## Development
 
