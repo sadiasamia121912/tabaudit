@@ -78,7 +78,79 @@ that goes on the résumé.
 
 **Done when:** `pip install tabaudit` works on a clean machine and the repo is public with a release.
 
-## Phase 4 — v0.2.0: `tabaudit fix`  (1–2 days, only after 2.5 + 3.5 are done)
+## Phase 4 — Prove it: fault-injection evaluation  (1 day, after 2.5 + 3.5)
+
+Goal: today the evidence is "found real problems in 4 of 10 datasets". An interviewer will
+ask *"how do you know it isn't missing things, and what's the false-positive rate?"* — and
+right now there is no answer. This phase produces one: **precision / recall per check**,
+measured the way the cleanlab and deepchecks papers measure themselves.
+
+**Technique — fault injection:** start from a dataset the tool already knows well, *plant*
+faults whose location you know exactly, run the audit, and compare what it flagged against
+where you planted them.
+
+| Check | What we inject | Ground truth | Metric |
+|---|---|---|---|
+| duplicates | copy 5 % of rows | indices of the copies | recall (should be 1.0 — a sanity check, the hash is exact) |
+| label noise | flip 3 % of labels to a random *other* class | indices flipped | precision + recall, separately for the "likely" and "suspected" tiers |
+| leakage | (a) `target + noise` column, (b) a column whose *missingness* mirrors the target (like Titanic `boat`) | the injected column name | detection rate; plus **FPR** = original, non-leaky columns that get flagged |
+
+Definitions (one line each): *precision* = of the rows we flagged, what fraction were really
+planted; *recall* = of the rows we planted, what fraction we flagged; *FPR* = of the innocent
+columns, what fraction we wrongly accused.
+
+- [ ] **4.1** Findings must expose *which* rows they mean, or nothing can be scored. Add
+  `"rows": [...]` (all affected indices, not just the top 25) to the `evidence` of the
+  label-noise finding (both tiers) and the exact-duplicates finding. Leakage already has
+  `columns`. Keep the existing top-25 `suspects` list for the report. Tests: `rows` has the
+  expected length on `demo` data; JSON report still serialises.
+- [ ] **4.2** `benchmarks/inject.py` — one function per fault, each `(df, target, rng) ->
+  (df_injected, truth)`: `inject_duplicates(frac=0.05)`, `inject_label_flips(frac=0.03)`,
+  `inject_leak_copy(noise=0.1)`, `inject_leak_missingness()`. Pure functions, seeded, no I/O.
+  Tests (`tests/test_inject.py`): each produces exactly the promised count and `truth` points
+  at the right rows/column.
+- [ ] **4.3** `benchmarks/evaluate.py` — for each of the 10 datasets × 3 seeds: build a
+  *clean base* first (drop the already-known leaks — Titanic `boat`/`body`, bank-marketing
+  `duration` — and `drop_duplicates()`), then inject **one** fault type at a time, run
+  `run_audit`, score against `truth`. Write `benchmarks/eval_results.json`. Cap `max_rows`
+  at 20 000 for this run (label-noise CV is the bottleneck; `creditcard` alone was 218 s).
+  Print a table: check · precision · recall · FPR, mean ± sd over seeds.
+- [ ] **4.4** Calibrate, don't guess. `LIKELY_MAX_SELF_CONFIDENCE = 0.2` in
+  `checks/label_noise.py` is a made-up number — sweep {0.1, 0.2, 0.3, 0.4} against the
+  injected truth and keep the value with the best F1 on the "likely" tier. Do the same for
+  the leakage gap rule *only if* FPR > 5 %. Change a constant only when the data says so, and
+  record the sweep table in `docs/checks.md` next to the threshold.
+- [ ] **4.5** `docs/evaluation.md`: the per-check table, then an honest "what this does not
+  show" paragraph — injected flips are *uniform random*; real label noise is
+  class-conditional and feature-dependent (see `docs/label_noise_review.md`), so the recall
+  number is an **upper bound**. Link it from README under a new "How well does it detect
+  things?" section, and update the résumé bullet in `../AI_ML_Portfolio_Projects.md`.
+- [ ] **4.6** Commit, push. (`benchmarks/eval_results.json` is committed — it *is* the
+  evidence; the OpenML cache stays ignored.)
+
+**Done when:** `docs/evaluation.md` has precision/recall/FPR for every check over ≥ 8 datasets
+× 3 seeds, and you can say a sentence like *"label-noise detection: 0.9x precision / 0.8x
+recall on 3 % injected noise; leakage: 10/10 detected, x % false-positive rate."*
+
+## Phase 5 — Adoption: make it a tool people run  (½ day, optional)
+
+Goal: change the story from "a script that prints a report" to "a data-quality gate in your
+CI pipeline". Each item is small; the sum is what makes it look like a real tool.
+
+- [ ] **5.1** `tabaudit audit data.csv --target y --fail-below 70` → exit code 1 when the
+  score is under the bar; `--fail-on high` → exit 1 on any finding of that severity or worse.
+  Exit codes are how CI systems decide pass/fail. Tests for both flags.
+- [ ] **5.2** `action.yml` (composite GitHub Action: install tabaudit, run with `--fail-below`)
+  and `.pre-commit-hooks.yaml`. A 6-line usage example of each in the README.
+- [ ] **5.3** README "How it compares": one table vs `ydata-profiling`, `deepchecks`,
+  `cleanlab` — which of the 5 checks each covers, gives a score?, fixes?, install size,
+  wall time on `adult`. Say where tabaudit loses. Interviewers trust a project that names its
+  competitors.
+- [ ] **5.4** Profile the `creditcard` run (`python -m cProfile -s cumtime …`). The
+  suspect is the 5-fold `cross_val_predict` in label noise. Cap that check's sample at 20 k or
+  lower `max_iter` on large samples; target < 60 s. Skip if it isn't a one-hour fix.
+
+## Phase 6 — v0.2.0: `tabaudit fix`  (1–2 days, after Phase 4)
 
 Goal: tabaudit currently *detects and scores*. v0.2 makes it *fix what has exactly one
 correct fix*, refuse to guess on the rest, and hand the user leak-free preprocessing code.
@@ -96,18 +168,18 @@ time (see `docs/label_noise_review.md`: 5 of 10 suspects were ambiguous) and wro
 | Label noise | ❌ | flag rows, never relabel or drop |
 | Normalization / scaling / encoding | ❌ never applied to the file | must be fit on train *inside* the pipeline; a "normalized CSV" bakes test statistics into training |
 
-- [ ] **4.1** `Fix` dataclass in `findings.py`: `action` (`drop_rows` | `drop_columns` | `flag_rows` | `coerce_dtype`), `params: dict`, `safe: bool`, `flag: str | None` (the CLI flag that enables an unsafe fix). Add optional `fix: Fix | None = None` to `Finding`. Include it in `to_dict()`. Tests: serialisation round-trip.
-- [ ] **4.2** Emit fixes from the checks that can — `duplicates.py` (drop_rows, safe), `schema.py` (drop_columns / coerce_dtype, safe), `leakage.py` (drop_columns, **unsafe**, flag `--drop-leaky`), `label_noise.py` (flag_rows, unsafe, flag `--flag-noise` → adds a `tabaudit_suspect` bool column). `imbalance.py` emits **no** fix — its recommendation text is the fix. Tests: each check's fix has the right rows/columns on `demo` data.
-- [ ] **4.3** `fix.py`: `apply_fixes(df, report, enabled_flags) -> (clean_df, FixPlan)`. Apply order matters: drop columns first, then drop rows, then flag rows. `FixPlan` records what was applied, what was skipped and why, row/col counts before/after. Tests: applying the plan twice is a no-op; skipped unsafe fixes are listed.
-- [ ] **4.4** `tabaudit fix data.csv --target y [--drop-leaky] [--flag-noise] [--out clean.csv]`. Prints the plan (✔ applied / ? needs a flag), writes `<name>.clean.csv` + `<name>.fixplan.json`. Exit code 0 even when unsafe fixes are skipped — skipping is the correct behaviour, not an error.
-- [ ] **4.5** `pipeline.py`: generate `<name>_pipeline.py` — a scikit-learn `ColumnTransformer` skeleton from the cleaned frame's dtypes: `StandardScaler` for numeric, `OneHotEncoder(handle_unknown="ignore")` for categoricals with ≤ 20 levels, `OrdinalEncoder` above that, `SimpleImputer` where nulls were found. Header comment explaining *why this is code and not a transformed CSV* (fit on train only). This is generated **text**, not applied transformation — keep it that way.
-- [ ] **4.6** Re-run `benchmarks/run_benchmarks.py` with `fix` on the 10 datasets → add a "rows/cols removed by safe fixes" column to `docs/benchmarks.md`. Sanity check: score after `fix` ≥ score before on every dataset.
-- [ ] **4.7** `docs/fix.md`: the table above + one worked example (bank-marketing `duration`). README section "Fixing what it finds". Bump to 0.2.0, `python -m build`, `twine upload`, tag, release.
-- [ ] **4.8** Second LinkedIn post: *"v0.2: tabaudit now fixes what it finds — and why it refuses to fix some things"*.
+- [ ] **6.1** `Fix` dataclass in `findings.py`: `action` (`drop_rows` | `drop_columns` | `flag_rows` | `coerce_dtype`), `params: dict`, `safe: bool`, `flag: str | None` (the CLI flag that enables an unsafe fix). Add optional `fix: Fix | None = None` to `Finding`. Include it in `to_dict()`. Tests: serialisation round-trip.
+- [ ] **6.2** Emit fixes from the checks that can — `duplicates.py` (drop_rows, safe), `schema.py` (drop_columns / coerce_dtype, safe), `leakage.py` (drop_columns, **unsafe**, flag `--drop-leaky`), `label_noise.py` (flag_rows, unsafe, flag `--flag-noise` → adds a `tabaudit_suspect` bool column). `imbalance.py` emits **no** fix — its recommendation text is the fix. Tests: each check's fix has the right rows/columns on `demo` data.
+- [ ] **6.3** `fix.py`: `apply_fixes(df, report, enabled_flags) -> (clean_df, FixPlan)`. Apply order matters: drop columns first, then drop rows, then flag rows. `FixPlan` records what was applied, what was skipped and why, row/col counts before/after. Tests: applying the plan twice is a no-op; skipped unsafe fixes are listed.
+- [ ] **6.4** `tabaudit fix data.csv --target y [--drop-leaky] [--flag-noise] [--out clean.csv]`. Prints the plan (✔ applied / ? needs a flag), writes `<name>.clean.csv` + `<name>.fixplan.json`. Exit code 0 even when unsafe fixes are skipped — skipping is the correct behaviour, not an error.
+- [ ] **6.5** `pipeline.py`: generate `<name>_pipeline.py` — a scikit-learn `ColumnTransformer` skeleton from the cleaned frame's dtypes: `StandardScaler` for numeric, `OneHotEncoder(handle_unknown="ignore")` for categoricals with ≤ 20 levels, `OrdinalEncoder` above that, `SimpleImputer` where nulls were found. Header comment explaining *why this is code and not a transformed CSV* (fit on train only). This is generated **text**, not applied transformation — keep it that way.
+- [ ] **6.6** Re-run `benchmarks/run_benchmarks.py` with `fix` on the 10 datasets → add a "rows/cols removed by safe fixes" column to `docs/benchmarks.md`. Sanity check: score after `fix` ≥ score before on every dataset.
+- [ ] **6.7** `docs/fix.md`: the table above + one worked example (bank-marketing `duration`). README section "Fixing what it finds". Bump to 0.2.0, `python -m build`, `twine upload`, tag, release.
+- [ ] **6.8** Second LinkedIn post: *"v0.2: tabaudit now fixes what it finds — and why it refuses to fix some things"*.
 
 **Done when:** `tabaudit fix` on `tabaudit demo` data drops the duplicates and constant column, leaves the leaky column in place with a clear message, and the generated pipeline file runs end-to-end on the clean CSV.
 
-## Phase 5 — Stretch (only if Phase 4 is finished)
+## Phase 7 — Stretch (only if Phase 6 is finished)
 
 - [ ] Group / time leakage check: entity IDs that appear in both train and test; date columns where test dates precede train dates
 - [ ] Near-duplicate detection (numeric tolerance / fuzzy text)
@@ -116,7 +188,9 @@ time (see `docs/label_noise_review.md`: 5 of 10 suspects were ambiguous) and wro
 
 ## Then → Project 2 (LLM → tiny model distillation)
 
-Do **not** start until Phase 3 is complete. Phase 4 is optional — decide after 3.5 whether v0.2 or Project 2 is the better use of the next week. See `../AI_ML_Portfolio_Projects.md`.
+Do **not** start until Phase 3 is complete. Recommended order after that (decided 2026-09-15):
+**Phase 4 (prove it) → Phase 5 (adoption) → Phase 6 (`fix`) → Project 2**, about a week total.
+Phases 5–6 are optional — decide after Phase 4 whether they or Project 2 are the better use of the next week. See `../AI_ML_Portfolio_Projects.md`.
 
 ---
 
@@ -174,3 +248,8 @@ PyPI link, since the README links point at the repo) and 3.5 the LinkedIn/blog p
 auto-applied, unsafe ones behind flags, preprocessing emitted as sklearn code — never as a
 transformed CSV) and wrote it up as Phase 4. Still open before that: 2.5 (make repo public)
 and 3.5 (LinkedIn post).
+
+**2026-09-15 (later)** — Still no code. Agreed the improvement strategy: credibility >
+features. Added **Phase 4 — fault-injection evaluation** (precision/recall/FPR per check)
+and **Phase 5 — adoption** (CI exit codes, GitHub Action, comparison table, profiling);
+the `fix` design moved to **Phase 6**, stretch to **Phase 7**. Next: 2.5 and 3.5, then 4.1.
