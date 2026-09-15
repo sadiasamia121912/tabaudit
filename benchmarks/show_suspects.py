@@ -28,7 +28,6 @@ from sklearn.datasets import fetch_openml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from run_benchmarks import CACHE_DIR, DATASETS  # sibling script, not a package
-
 from tabaudit import run_audit
 
 console = Console()

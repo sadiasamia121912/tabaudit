@@ -62,7 +62,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["tabaudit", "inject"]  # benchmarks/inject.py is ours, not a dependency
+known-first-party = ["tabaudit", "inject", "run_benchmarks", "evaluate"]  # benchmarks/*.py are ours
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

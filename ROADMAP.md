@@ -109,7 +109,7 @@ columns, what fraction we wrongly accused.
   `inject_leak_copy(noise=0.1)`, `inject_leak_missingness()`. Pure functions, seeded, no I/O.
   Tests (`tests/test_inject.py`): each produces exactly the promised count and `truth` points
   at the right rows/column.
-- [ ] **4.3** `benchmarks/evaluate.py` — for each of the 10 datasets × 3 seeds: build a
+- [x] **4.3** _(done 2026-09-15: 120 runs in ~2 min; results in `benchmarks/eval_results.json`; smoke test in `tests/test_evaluate.py`)_ `benchmarks/evaluate.py` — for each of the 10 datasets × 3 seeds: build a
   *clean base* first (drop the already-known leaks — Titanic `boat`/`body`, bank-marketing
   `duration` — and `drop_duplicates()`), then inject **one** fault type at a time, run
   `run_audit`, score against `truth`. Write `benchmarks/eval_results.json`. Cap `max_rows`
@@ -130,6 +130,20 @@ columns, what fraction we wrongly accused.
   the 0.2 constant: `confident_learning ∧ self_conf<t` (today) vs `self_conf<t` alone vs
   `predicted_neq_given ∧ self_conf<t`. Judge on real datasets — the toy has no ambiguous rows,
   real data does (`docs/label_noise_review.md`).
+  **First full run (4.3, 10 datasets × 3 seeds):** duplicates 1.00 / 1.00; `leak_copy`
+  30/30 detected, FPR 0.00; `leak_missingness` **27/30**, FPR 0.00; label noise "likely" tier
+  precision 0.43 raw → **0.81 excluding rows already flagged before injection**, recall 0.53;
+  "suspected" tier 0.37 → 0.63, recall 0.65. Per-dataset spread is large: spambase / creditcard
+  / breast-w ≥ 0.85 excl-baseline precision, credit-g / diabetes ≈ 0.3 (they are genuinely
+  noisy: 13 % of rows flagged *before* injection).
+  - [ ] **4.4a — fix first, then calibrate.** The 3 misses are all `creditcard`: in a 20 k
+    sample there are 36 fraud rows but the single-feature tree in `checks/leakage.py` uses
+    `min_samples_leaf = max(5, n // 500) = 40`, so it can never isolate the rows where the
+    planted column is filled → AUC 0.49. The existing `_missingness_auc` helper returns 1.0 on
+    the same column but is only used to decorate finding text. Fix: cap `min_samples_leaf` at
+    half the minority-class count, **and** promote missingness-AUC to a real detection path
+    (a column whose *missingness alone* scores ≥ NEAR_PERFECT is a leak). Add a test with a
+    0.2 % positive class. Re-run `evaluate.py creditcard` → expect 3/3.
 - [ ] **4.5** `docs/evaluation.md`: the per-check table, then an honest "what this does not
   show" paragraph — injected flips are *uniform random*; real label noise is
   class-conditional and feature-dependent (see `docs/label_noise_review.md`), so the recall
@@ -275,3 +289,12 @@ only ~half of obvious planted flips — noted under 4.4, *not* changed yet. **Ne
 `Injection(kind, df, rows, columns)`. Tests import it via `pythonpath = ["benchmarks"]` in
 `pyproject.toml`; CI now lints `benchmarks/` too. **Next: 4.3** (`benchmarks/evaluate.py`).
 Resume: activate `.venv`, `pytest -q` → 42 passed.
+
+**2026-09-15 (late)** — **4.3 done.** `benchmarks/evaluate.py` runs 10 datasets × 3 seeds ×
+4 faults in ~2 min (only the checks relevant to each fault are run). Numbers are in the 4.4
+notes above and in `benchmarks/eval_results.json`. Two things it exposed: (1) leakage goes blind
+when the minority class in the sample is smaller than the tree's `min_samples_leaf`
+(creditcard, 3/3 misses) — precise cause and fix written up as **4.4a**; (2) raw label-noise
+precision is dominated by each dataset's *pre-existing* noise, so `precision_excl_baseline`
+is the number to quote. **Next: 4.4a** (fix), then 4.4 (threshold/filter sweep).
+Resume: activate `.venv`, `pytest -q` → 44 passed; `python benchmarks/evaluate.py creditcard`.
