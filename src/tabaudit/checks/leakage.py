@@ -102,12 +102,16 @@ def _single_feature_scores(ctx: AuditContext, skip: set[str]) -> dict[str, dict]
         if min_class < 2 or n_classes < 2:
             return results
         cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=ctx.random_state)
+        # A leaf must never be required to hold more rows than half the rarest class, or the
+        # tree cannot isolate that class at all (creditcard: 36 fraud rows in a 20k sample vs
+        # the default leaf of 40 made a perfect leak score AUC 0.49).
+        leaf = min(max(5, len(y_codes) // 500), max(2, min_class // 2))
         for col in feats:
             x = _fill_sentinel(Xe[col].to_numpy(dtype=float)).reshape(-1, 1)
             if np.unique(x).size < 2:
                 continue
             model = DecisionTreeClassifier(
-                max_depth=4, min_samples_leaf=max(5, len(x) // 500), random_state=ctx.random_state
+                max_depth=4, min_samples_leaf=leaf, random_state=ctx.random_state
             )
             try:
                 with warnings.catch_warnings():
@@ -212,6 +216,18 @@ def run(ctx: AuditContext) -> list[Finding]:
 
     # ---- 2. single-feature predictive power -----------------------------
     scores = _single_feature_scores(ctx, skip=id_set)
+    # Whether a value is *present* can leak on its own (Titanic `boat`: only survivors have
+    # one). Score that directly and keep whichever view of the column is stronger; the
+    # rules below then treat the column like any other.
+    for col in ctx.feature_cols:
+        if col in id_set or not ctx.df[col].isna().any():
+            continue
+        m_auc = _missingness_auc(ctx, col)
+        if m_auc is None:
+            continue
+        if m_auc > scores.get(col, {"score": -np.inf})["score"]:
+            scores[col] = {"metric": "AUC", "score": m_auc}
+        scores[col]["missingness_auc"] = round(m_auc, 4)
     perfect = [c for c, r in scores.items() if r["score"] >= NEAR_PERFECT]
     rest = {c: r["score"] for c, r in scores.items() if c not in perfect}
     floor = 0.5 if ctx.task == "classification" else 0.0  # chance-level AUC / R^2
@@ -225,9 +241,8 @@ def run(ctx: AuditContext) -> list[Finding]:
     def _describe(col: str) -> str:
         r = scores[col]
         txt = f"{col} ({r['metric']}={r['score']:.3f})"
-        m_auc = _missingness_auc(ctx, col)
-        if m_auc is not None and m_auc >= 0.9:
-            txt += f" - its *missingness alone* has AUC {m_auc:.2f}"
+        if r.get("missingness_auc", 0) >= 0.9:
+            txt += f" - its *missingness alone* has AUC {r['missingness_auc']:.2f}"
         return txt
 
     gap_note = f" Next-best feature scores {runner_up:.3f}." if runner_up is not None else ""

@@ -141,6 +141,46 @@ def test_leakage_catches_missingness_leak():
     assert "missingness" in perfect.detail
 
 
+def rare_class_frame(n: int = 20_000, n_pos: int = 36) -> pd.DataFrame:
+    """A creditcard-like frame: 0.18% positives, three honest features."""
+    rng = np.random.default_rng(5)
+    y = np.zeros(n, dtype=int)
+    y[rng.choice(n, n_pos, replace=False)] = 1
+    return pd.DataFrame(
+        {
+            "a": rng.normal(size=n) + 0.5 * y,
+            "b": rng.normal(size=n),
+            "c": rng.integers(0, 3, n),
+            "y": y,
+        }
+    )
+
+
+def test_leakage_missingness_leak_confined_to_rare_class():
+    # Filled only for the 36 positives. The tree alone cannot isolate them (default leaf 40),
+    # so this relies on the missingness-AUC path. Was missed 3/3 on creditcard before 4.4a.
+    df = rare_class_frame()
+    df["filled_for_pos"] = np.where(
+        df["y"] == 1, np.random.default_rng(6).normal(size=len(df)), np.nan
+    )
+    f = leakage.run(ctx_for(df))
+    hit = next(x for x in f if "filled_for_pos" in x.columns)
+    assert hit.severity == Severity.CRITICAL
+    assert "missingness alone" in hit.detail
+    assert hit.evidence["filled_for_pos"]["missingness_auc"] == 1.0
+
+
+def test_leakage_value_leak_confined_to_rare_class():
+    # No NaNs at all: a flag that is 1 exactly for the positives. Only the tree can see it,
+    # so this exercises the min_samples_leaf cap (36 positives < default leaf of 40).
+    df = rare_class_frame()
+    df["flag"] = df["y"]
+    f = leakage.run(ctx_for(df))
+    hit = next(x for x in f if "flag" in x.columns)
+    assert hit.severity == Severity.CRITICAL
+    assert not {"a", "b", "c"} & {c for x in f for c in x.columns}
+
+
 def test_leakage_does_not_flag_honest_features():
     f = leakage.run(ctx_for(base_frame(600)))
     assert not any(x.severity in (Severity.CRITICAL, Severity.HIGH) for x in f)

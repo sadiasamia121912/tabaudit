@@ -153,7 +153,8 @@ memorise row identity from IDs, and sequential IDs leak collection order. Floats
 exempt because a continuous measurement is naturally unique.
 
 *b) Single-feature predictive power* — the main test. For every feature *on its own*, a
-shallow decision tree (depth 4, minimum leaf size n / 500) is 5-fold cross-validated
+shallow decision tree (depth 4, minimum leaf size n / 500, but never more than half the
+rarest class — see *Rare classes* below) is 5-fold cross-validated
 against the target and scored with AUC (classification) or R² (regression). Then:
 
 | rule | severity | why |
@@ -198,10 +199,21 @@ yes" patterns, while being too small to memorise a high-cardinality column. Why
 cross-validated: an in-sample tree would fit noise and every feature would look
 predictive.
 
-*Missingness.* Before scoring, missing values are replaced by a sentinel below the column
-minimum so the tree can split on "is this missing?" itself. This is what catches the
-commonest real leak — a field that is only filled in for one class (`churn_reason`,
-Titanic `boat`). The finding says so explicitly when missingness alone has AUC ≥ 0.9.
+*Missingness.* The commonest real leak is a field that is only filled in for one class
+(`churn_reason`, Titanic `boat`). Two things catch it. Before scoring, missing values are
+replaced by a sentinel below the column minimum so the tree can split on "is this
+missing?" itself. Independently, for every column with any missing values, the AUC of the
+bare indicator *is this value missing?* against the target is computed, and the column's
+score is the **higher** of the two. The finding says so explicitly when missingness alone
+has AUC ≥ 0.9.
+
+*Rare classes.* The leaf-size floor of n / 500 exists so a noisy feature cannot look
+predictive by memorising a handful of rows. But it must not exceed half the rarest class:
+on `creditcard` a 20 000-row sample holds ~36 fraud rows, and with the default leaf of 40 the
+tree could not isolate them, so a column filled in *only* for fraud scored AUC 0.49 — a
+perfect leak, invisible. The fault-injection evaluation (`docs/evaluation.md`) found this;
+both the cap and the direct missingness score were added in response (after the v0.1.0
+release; they ship with the next version).
 
 *c) Column names that mention the target* — LOW. Whole-word match, so `class_of_service`
 matches target `class` but `workclass` does not. It is only a hint; derived columns are

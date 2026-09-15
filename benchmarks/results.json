@@ -20,7 +20,7 @@
         "check": "leakage",
         "severity": "high",
         "title": "1 feature(s) are suspiciously predictive alone",
-        "detail": "boat (AUC=0.967) - its *missingness alone* has AUC 0.97. Each stands far above every other feature. Next-best feature scores 0.742.",
+        "detail": "boat (AUC=0.971) - its *missingness alone* has AUC 0.97. Each stands far above every other feature. Next-best feature scores 0.742.",
         "columns": [
           "boat"
         ]
@@ -56,7 +56,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 12.1
+    "seconds": 1.4
   },
   {
     "dataset": "adult",
@@ -109,7 +109,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 16.9
+    "seconds": 5.6
   },
   {
     "dataset": "credit-g",
@@ -139,7 +139,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 10.7
+    "seconds": 0.9
   },
   {
     "dataset": "telco-customer-churn",
@@ -192,7 +192,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 10.0
+    "seconds": 1.4
   },
   {
     "dataset": "bank-marketing",
@@ -240,7 +240,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 16.1
+    "seconds": 5.2
   },
   {
     "dataset": "breast-w",
@@ -291,7 +291,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 10.1
+    "seconds": 0.7
   },
   {
     "dataset": "heart-statlog",
@@ -321,7 +321,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 11.5
+    "seconds": 0.7
   },
   {
     "dataset": "diabetes",
@@ -351,7 +351,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 10.7
+    "seconds": 0.6
   },
   {
     "dataset": "spambase",
@@ -395,7 +395,7 @@
       }
     ],
     "check_errors": [],
-    "seconds": 12.7
+    "seconds": 3.6
   },
   {
     "dataset": "creditcard",
@@ -442,16 +442,18 @@
       {
         "check": "leakage",
         "severity": "info",
-        "title": "3 features each score >= 0.90 alone - highly separable task",
-        "detail": "V14 (AUC=0.935); V17 (AUC=0.933); V12 (AUC=0.917). They are bunched together (no single feature stands apart), which points to an easy task rather than a leak.",
+        "title": "5 features each score >= 0.90 alone - highly separable task",
+        "detail": "V14 (AUC=0.934); V4 (AUC=0.927); V17 (AUC=0.922); V12 (AUC=0.919); V10 (AUC=0.901). They are bunched together (no single feature stands apart), which points to an easy task rather than a leak.",
         "columns": [
           "V14",
+          "V4",
           "V17",
-          "V12"
+          "V12",
+          "V10"
         ]
       }
     ],
     "check_errors": [],
-    "seconds": 218.5
+    "seconds": 19.6
   }
 ]

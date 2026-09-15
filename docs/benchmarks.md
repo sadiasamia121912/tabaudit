@@ -6,7 +6,10 @@ exactly what `tabaudit audit data.csv --target y` does. Total wall time: about 2
 laptop CPU for the nine small datasets, plus ~3.5 min for `creditcard` (285k rows).
 
 Reproduce: `python benchmarks/run_benchmarks.py` (writes `benchmarks/results.json`).
-Results as of tabaudit 0.1.0 with the gap-based leakage rule, 2026-09-14.
+Results as of tabaudit 0.1.0 with the gap-based leakage rule, 2026-09-14. Re-run 2026-09-15
+after the rare-class leakage fix (`docs/checks.md`, *Rare classes*): every score and every
+CRITICAL/HIGH/MEDIUM finding is unchanged; the only difference is creditcard's INFO note,
+which now lists 5 strong features instead of 3 because the tree can finally isolate the fraud rows.
 
 ## Summary
 

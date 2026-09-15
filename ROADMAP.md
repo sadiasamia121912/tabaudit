@@ -136,7 +136,7 @@ columns, what fraction we wrongly accused.
   "suspected" tier 0.37 → 0.63, recall 0.65. Per-dataset spread is large: spambase / creditcard
   / breast-w ≥ 0.85 excl-baseline precision, credit-g / diabetes ≈ 0.3 (they are genuinely
   noisy: 13 % of rows flagged *before* injection).
-  - [ ] **4.4a — fix first, then calibrate.** The 3 misses are all `creditcard`: in a 20 k
+  - [x] **4.4a — fix first, then calibrate.** _(done 2026-09-15: leaf cap + missingness score; 2 regression tests; `leak_missingness` 30/30; real-data benchmark scores unchanged)_ The 3 misses are all `creditcard`: in a 20 k
     sample there are 36 fraud rows but the single-feature tree in `checks/leakage.py` uses
     `min_samples_leaf = max(5, n // 500) = 40`, so it can never isolate the rows where the
     planted column is filled → AUC 0.49. The existing `_missingness_auc` helper returns 1.0 on
@@ -298,3 +298,12 @@ when the minority class in the sample is smaller than the tree's `min_samples_le
 precision is dominated by each dataset's *pre-existing* noise, so `precision_excl_baseline`
 is the number to quote. **Next: 4.4a** (fix), then 4.4 (threshold/filter sweep).
 Resume: activate `.venv`, `pytest -q` → 44 passed; `python benchmarks/evaluate.py creditcard`.
+
+**2026-09-15 (night, later)** — **4.4a done.** `checks/leakage.py`: `min_samples_leaf` is
+capped at half the rarest class, and the missingness-only AUC is now a real score (the column
+keeps the higher of tree score and missingness score). Two regression tests with a 0.18 %
+positive class fail on the old code and pass on the new. `evaluate.py`: `leak_missingness`
+27/30 → **30/30**, FPR still 0.00, nothing else moved. `run_benchmarks.py` re-run: all 10
+scores identical; only creditcard's INFO list grew from 3 to 5 strong features.
+`docs/checks.md` and `docs/benchmarks.md` updated. **Next: 4.4** (label-noise threshold and
+filter sweep). Resume: activate `.venv`, `pytest -q` → 46 passed.
