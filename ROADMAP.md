@@ -161,7 +161,7 @@ recall on 3 % injected noise; leakage: 10/10 detected, x % false-positive rate."
 Goal: change the story from "a script that prints a report" to "a data-quality gate in your
 CI pipeline". Each item is small; the sum is what makes it look like a real tool.
 
-- [ ] **5.1** `tabaudit audit data.csv --target y --fail-below 70` → exit code 1 when the
+- [x] **5.1** _(done 2026-09-15; `--fail-under` already existed since v0.1.0 — the roadmap had mis-named it `--fail-below` — so this added `--fail-on`)_ `tabaudit audit data.csv --target y --fail-under 70` → exit code 1 when the
   score is under the bar; `--fail-on high` → exit 1 on any finding of that severity or worse.
   Exit codes are how CI systems decide pass/fail. Tests for both flags.
 - [ ] **5.2** `action.yml` (composite GitHub Action: install tabaudit, run with `--fail-below`)

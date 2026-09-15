@@ -21,7 +21,7 @@ tabaudit audit train.csv --target churn --test test.csv --html report.html
 A model that scores 99% on a leaked dataset is worse than useless: it looks finished and
 fails silently in production. Most of these defects take one line of pandas to fix — the
 hard part is *noticing* them. `tabaudit` makes the check automatic, fast, and repeatable
-(it runs in CI with `--fail-under`).
+(it runs in CI with `--fail-under` / `--fail-on`).
 
 ## What it checks
 
@@ -48,8 +48,9 @@ tabaudit demo
 tabaudit audit data.csv --target label
 tabaudit audit train.parquet -t label --test test.parquet --html report.html --json report.json
 
-# Only some checks, sampled for speed, gate a CI pipeline
-tabaudit audit data.csv -t label -c leakage,duplicates --max-rows 20000 --fail-under 75
+# Only some checks, sampled for speed, gate a CI pipeline:
+# exit 1 if the score is under 75 OR any finding is HIGH/CRITICAL
+tabaudit audit data.csv -t label -c leakage,duplicates --max-rows 20000 --fail-under 75 --fail-on high
 ```
 
 Supported inputs: CSV, TSV, Parquet, Feather, JSON-lines. Classification and regression

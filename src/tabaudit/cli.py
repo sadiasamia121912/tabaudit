@@ -14,6 +14,7 @@ from rich.status import Status
 from tabaudit import __version__
 from tabaudit.audit import run_audit
 from tabaudit.checks import REGISTRY
+from tabaudit.findings import Severity
 from tabaudit.report import render_console, render_html
 
 app = typer.Typer(
@@ -71,10 +72,25 @@ def audit(
     fail_under: int | None = typer.Option(
         None, "--fail-under", help="Exit with code 1 if the health score is below this (for CI)."
     ),
+    fail_on: str | None = typer.Option(
+        None,
+        "--fail-on",
+        help="Exit with code 1 on any finding of this severity or worse "
+        "(critical | high | medium | low), for CI.",
+    ),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Only print the score line."),
 ) -> None:
     """Audit a dataset and print a health report."""
     selected = [c.strip() for c in checks.split(",")] if checks else None
+    fail_sev: Severity | None = None
+    if fail_on is not None:
+        try:
+            fail_sev = Severity(fail_on.lower())
+        except ValueError:
+            err.print(
+                f"[bold red]error:[/bold red] --fail-on must be one of {[s.value for s in Severity]}"
+            )
+            raise typer.Exit(code=2) from None
     try:
         with Status("[cyan]loading…", console=console, spinner="dots") as status:
 
@@ -108,8 +124,21 @@ def audit(
         Path(json_out).write_text(json.dumps(report.to_dict(), indent=2), encoding="utf-8")
         console.print(f"[dim]JSON report →[/dim] {Path(json_out).resolve()}")
 
+    failed = False
     if fail_under is not None and report.score < fail_under:
         err.print(f"[bold red]FAIL[/bold red] score {report.score} < {fail_under}")
+        failed = True
+    if fail_sev is not None:
+        # rank: CRITICAL=0 ... INFO=4, so "this severity or worse" is rank <= threshold rank
+        hits = [f for f in report.findings if f.severity.rank <= fail_sev.rank]
+        if hits:
+            worst = min(hits, key=lambda f: f.severity.rank)
+            err.print(
+                f"[bold red]FAIL[/bold red] {len(hits)} finding(s) at {fail_sev.value} or worse "
+                f"(worst: {worst.severity.value} - {worst.title})"
+            )
+            failed = True
+    if failed:
         raise typer.Exit(code=1)
 
 
