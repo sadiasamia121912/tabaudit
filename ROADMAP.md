@@ -166,7 +166,7 @@ CI pipeline". Each item is small; the sum is what makes it look like a real tool
   Exit codes are how CI systems decide pass/fail. Tests for both flags.
 - [x] **5.2** _(done 2026-09-15; added `tabaudit gate FILE...` so one invocation handles many files, which pre-commit needs; CI has an `action-self-test` job that runs the Action on demo data and asserts it fails on the planted leak. **README snippets pin `@v0.2.0` — that tag must exist before the repo goes public.**)_ `action.yml` (composite GitHub Action: install tabaudit, run with `--fail-under`)
   and `.pre-commit-hooks.yaml`. A 6-line usage example of each in the README.
-- [ ] **5.3** README "How it compares": one table vs `ydata-profiling`, `deepchecks`,
+- [x] **5.3** _(done 2026-09-15; measured in a throwaway venv, since deleted)_ README "How it compares": one table vs `ydata-profiling`, `deepchecks`,
   `cleanlab` — which of the 5 checks each covers, gives a score?, fixes?, install size,
   wall time on `adult`. Say where tabaudit loses. Interviewers trust a project that names its
   competitors.
@@ -335,3 +335,10 @@ pinned ref itself (not PyPI, so flags always match the code), `.pre-commit-hooks
 self-test of the Action, README "Use it as a gate". 51 tests. The Action snippet pins
 `@v0.2.0` → **a release must come before the repo goes public**. **Next: 5.3** (comparison
 table) or skip to the release.
+
+**2026-09-15 (5.3)** — README "How it compares" vs ydata-profiling 4.18, deepchecks 0.19,
+cleanlab 2.9: coverage matrix, install size on top of the shared 314 MB stack (14 / 338 / 176 /
+2–124 MB), time on `adult` (9.8 / 18.8 / 7.9 / 10–99 s), and an honest "where tabaudit loses".
+Notable: deepchecks 0.19.1 would not import without `numpy<2` and `scikit-learn<1.8`;
+ydata-profiling pins `pandas<3` and prints a deprecation notice. Scratch venv deleted.
+**Next: 5.4** (profiling — probably skip: creditcard already runs in ~20 s) or the release.

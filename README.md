@@ -178,6 +178,42 @@ an upper bound on real recall — is spelled out in
 [`docs/evaluation.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/evaluation.md).
 Reproduce with `python benchmarks/evaluate.py`.
 
+## How it compares
+
+Measured 2026-09-15 on a laptop, `adult` (48 842 rows × 15 columns) loaded from CSV, each
+tool at its defaults, best of 2–3 runs. "Adds" = install size on top of the
+numpy + pandas + scikit-learn stack (314 MB) that all four need.
+
+| | tabaudit | [ydata-profiling](https://github.com/ydataai/ydata-profiling) 4.18 | [deepchecks](https://github.com/deepchecks/deepchecks) 0.19 | [cleanlab](https://github.com/cleanlab/cleanlab) 2.9 |
+|---|:-:|:-:|:-:|:-:|
+| what it is | dataset auditor, CLI-first | EDA report generator | ML validation suites (data, train/test, model) | label-quality library |
+| target leakage (single feature) | ✅ AUC/R² + missingness, gap rule | ❌ | ✅ feature–label PPS | ❌ |
+| train/test overlap | ✅ | ❌ | ✅ `TrainTestSamplesMix` | ❌ |
+| exact duplicates | ✅ | ✅ | ✅ | ✅ (+ near-duplicates) |
+| conflicting labels | ✅ | ❌ | ✅ | ❌ |
+| class imbalance | ✅ target-aware | ⚠️ per-column alerts | ✅ | ✅ |
+| label noise (per-row suspects) | ✅ out-of-fold self-confidence | ❌ | ❌ | ✅ confident learning, you supply the probabilities |
+| schema: missing / constant / numeric-as-text | ✅ | ✅ | ✅ | ⚠️ nulls only |
+| drift, outliers, model evaluation | ❌ | ❌ | ✅ | ✅ outliers |
+| one overall score | ✅ 0–100 + grade | ❌ | ❌ per-check pass/fail | ❌ per-issue-type scores |
+| CI gate out of the box | ✅ `--fail-on` / `--fail-under`, Action, pre-commit | ❌ | ⚠️ via conditions + your code | ❌ |
+| needs a model / probabilities from you | ❌ | ❌ | ❌ | ✅ for label issues |
+| measured detection quality published | ✅ [`docs/evaluation.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/evaluation.md) | ❌ | ❌ | ✅ papers |
+| adds to install | **14 MB** | 338 MB | 176 MB | 2 MB (124 MB with `[datalab]`) |
+| time on `adult` | **9.8 s** (all 5 checks) | 18.8 s (default report), 8.1 s (`minimal`) | 7.9 s (`data_integrity`, 12 checks) | 10.0 s (label issues; 99 s with `features` for near-duplicates/outliers) |
+| worked with current numpy 2 / scikit-learn 1.9 / pandas 3 | ✅ | ⚠️ pins `pandas<3` (downgraded it); project marked deprecated in favour of a successor | ❌ needed `numpy<2` and `scikit-learn<1.8` to import | ✅ |
+
+**Where tabaudit loses.** deepchecks covers far more ground — drift, outliers, model
+evaluation, weak segments, date/index leakage — and has a mature suite/condition system;
+if you already have a model and a train/test split, it is the more complete tool.
+ydata-profiling is a much richer *exploration* report (distributions, correlations,
+interactions) and is the right thing for the first look at unfamiliar data. cleanlab's
+label-issue detection is more general (multi-class, near-duplicates, outliers, images,
+text) and comes with a decade of research behind it; tabaudit's own evaluation found that
+on *tabular binary* targets its filter added nothing over self-confidence, which says more
+about that setting than about cleanlab. tabaudit is the small, opinionated one: five
+checks, one number, an exit code, and a published measurement of what it misses.
+
 ## How the hard checks work
 
 _Short version. Every threshold, and the reason for it, is in [`docs/checks.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/checks.md)._
