@@ -10,7 +10,7 @@ audit, and compare what it flagged with where we planted. Every number here is
 reproducible: `python benchmarks/evaluate.py` (≈ 3 min for all 120 runs) writes
 `benchmarks/eval_results.json`; `python benchmarks/sweep_label_noise.py` writes
 `benchmarks/sweep_results.json`. Results below are from the committed JSON files, tabaudit
-0.1.0 plus the unreleased changes of 2026-09-15 (commits `a8b27de`, `fee377e`).
+0.2.0 (the leakage and label-noise changes described further down are part of that release).
 
 ## Setup
 

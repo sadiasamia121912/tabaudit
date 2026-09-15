@@ -212,8 +212,7 @@ predictive by memorising a handful of rows. But it must not exceed half the rare
 on `creditcard` a 20 000-row sample holds ~36 fraud rows, and with the default leaf of 40 the
 tree could not isolate them, so a column filled in *only* for fraud scored AUC 0.49 — a
 perfect leak, invisible. The fault-injection evaluation (`docs/evaluation.md`) found this;
-both the cap and the direct missingness score were added in response (after the v0.1.0
-release; they ship with the next version).
+both the cap and the direct missingness score were added in response (v0.2.0).
 
 *c) Column names that mention the target* — LOW. Whole-word match, so `class_of_service`
 matches target `class` but `workclass` does not. It is only a hint; derived columns are

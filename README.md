@@ -278,7 +278,8 @@ Checks run in registry order and may communicate through `ctx.excluded_features`
 - [ ] Near-duplicate detection (fuzzy text, numeric tolerance)
 - [ ] Label-noise support for regression targets
 - [x] Audit results for popular public benchmark datasets — see [Results on real datasets](#results-on-real-datasets)
-- [ ] `pre-commit` hook and GitHub Action
+- [x] `pre-commit` hook and GitHub Action — see [Use it as a gate](#use-it-as-a-gate)
+- [x] Measured detection quality by fault injection — see [How well does it detect things?](#how-well-does-it-detect-things)
 
 ## License
 

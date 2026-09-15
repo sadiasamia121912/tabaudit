@@ -14,7 +14,7 @@ _Last updated: 2026-09-15. Companion to `../AI_ML_Portfolio_Projects.md` (the 3-
 | Benchmarks on real datasets | ✅ 10 datasets in `docs/benchmarks.md`, gap-based leakage fix verified on them |
 | README benchmark table + GIF | ✅ |
 | Public repo | ❌ your click: Settings → Danger zone → Change visibility |
-| PyPI release (`pip install tabaudit`) | ✅ 0.1.0 live, verified in a fresh venv |
+| PyPI release (`pip install tabaudit`) | ✅ 0.1.0 (2026-09-14); 0.2.0 built 2026-09-15 — see session log for upload status |
 
 **How to get running again (every session):**
 ```powershell
@@ -170,11 +170,13 @@ CI pipeline". Each item is small; the sum is what makes it look like a real tool
   `cleanlab` — which of the 5 checks each covers, gives a score?, fixes?, install size,
   wall time on `adult`. Say where tabaudit loses. Interviewers trust a project that names its
   competitors.
-- [ ] **5.4** Profile the `creditcard` run (`python -m cProfile -s cumtime …`). The
+- [ ] ~~**5.4**~~ _skipped 2026-09-15: creditcard already runs in ~20 s and adult in ~10 s; nothing worth an hour_ Profile the `creditcard` run (`python -m cProfile -s cumtime …`). The
   suspect is the 5-fold `cross_val_predict` in label noise. Cap that check's sample at 20 k or
   lower `max_iter` on large samples; target < 60 s. Skip if it isn't a one-hour fix.
 
-## Phase 6 — v0.2.0: `tabaudit fix`  (1–2 days, after Phase 4)
+## Phase 6 — v0.3.0: `tabaudit fix`  (1–2 days, optional)
+
+_Renumbered from v0.2.0: the evaluation + gate work shipped as 0.2.0 on 2026-09-15._
 
 Goal: tabaudit currently *detects and scores*. v0.2 makes it *fix what has exactly one
 correct fix*, refuse to guess on the rest, and hand the user leak-free preprocessing code.
@@ -198,8 +200,8 @@ time (see `docs/label_noise_review.md`: 5 of 10 suspects were ambiguous) and wro
 - [ ] **6.4** `tabaudit fix data.csv --target y [--drop-leaky] [--flag-noise] [--out clean.csv]`. Prints the plan (✔ applied / ? needs a flag), writes `<name>.clean.csv` + `<name>.fixplan.json`. Exit code 0 even when unsafe fixes are skipped — skipping is the correct behaviour, not an error.
 - [ ] **6.5** `pipeline.py`: generate `<name>_pipeline.py` — a scikit-learn `ColumnTransformer` skeleton from the cleaned frame's dtypes: `StandardScaler` for numeric, `OneHotEncoder(handle_unknown="ignore")` for categoricals with ≤ 20 levels, `OrdinalEncoder` above that, `SimpleImputer` where nulls were found. Header comment explaining *why this is code and not a transformed CSV* (fit on train only). This is generated **text**, not applied transformation — keep it that way.
 - [ ] **6.6** Re-run `benchmarks/run_benchmarks.py` with `fix` on the 10 datasets → add a "rows/cols removed by safe fixes" column to `docs/benchmarks.md`. Sanity check: score after `fix` ≥ score before on every dataset.
-- [ ] **6.7** `docs/fix.md`: the table above + one worked example (bank-marketing `duration`). README section "Fixing what it finds". Bump to 0.2.0, `python -m build`, `twine upload`, tag, release.
-- [ ] **6.8** Second LinkedIn post: *"v0.2: tabaudit now fixes what it finds — and why it refuses to fix some things"*.
+- [ ] **6.7** `docs/fix.md`: the table above + one worked example (bank-marketing `duration`). README section "Fixing what it finds". Bump to 0.3.0, `python -m build`, `twine upload`, tag, release.
+- [ ] **6.8** Second LinkedIn post: *"v0.3: tabaudit now fixes what it finds — and why it refuses to fix some things"*.
 
 **Done when:** `tabaudit fix` on `tabaudit demo` data drops the duplicates and constant column, leaves the leaky column in place with a clear message, and the generated pipeline file runs end-to-end on the clean CSV.
 
@@ -342,3 +344,9 @@ cleanlab 2.9: coverage matrix, install size on top of the shared 314 MB stack (1
 Notable: deepchecks 0.19.1 would not import without `numpy<2` and `scikit-learn<1.8`;
 ydata-profiling pins `pandas<3` and prints a deprecation notice. Scratch venv deleted.
 **Next: 5.4** (profiling — probably skip: creditcard already runs in ~20 s) or the release.
+
+**2026-09-15 (release prep)** — Version bumped to **0.2.0**; `CHANGELOG.md` added (Added /
+Changed / Fixed for 0.2.0, one-paragraph 0.1.0). `dist/` rebuilt clean, `twine check` PASSED,
+wheel installed in a fresh venv: `tabaudit 0.2.0`, no cleanlab, `gate` exits 1 on the demo
+leak. Phase 6 renumbered to v0.3.0; 5.4 skipped. Release steps still to run after the go-ahead:
+`git tag v0.2.0 && git push --tags`, `twine upload dist/*`, `gh release create v0.2.0`.

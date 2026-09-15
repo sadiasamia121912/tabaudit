@@ -1,6 +1,6 @@
 """tabaudit — audit tabular ML datasets before you train."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from tabaudit.audit import run_audit
 from tabaudit.findings import AuditReport, Finding, Severity
