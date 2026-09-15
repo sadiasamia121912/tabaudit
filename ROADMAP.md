@@ -62,7 +62,7 @@ that goes on the résumé.
 - [x] **2.4** Tick the "Audit results for popular public benchmark datasets" box in the README roadmap _(2026-09-14)_
 - [ ] **2.5** Make the repo **public** — _your click, when you have read `docs/checks.md` and `docs/label_noise_review.md`_ (GitHub → Settings → Danger zone → Change visibility)
 
-## Phase 3 — Publish  (½ day)  ← YOU ARE HERE (3.5 + 2.5 left)
+## Phase 3 — Publish  (½ day)  ← 3.5 + 2.5 still open (your clicks)
 
 - [x] **3.1** Create a PyPI account + API token (https://pypi.org) _(done 2026-09-14; tokens live in `C:\Users\User\.pypirc`)_
 - [x] **3.2** ~~Dry run on TestPyPI~~ _skipped: `twine check` + fresh-venv install of the local wheel covered it; TestPyPI needs a separate account and wasn't worth the friction_
@@ -78,7 +78,7 @@ that goes on the résumé.
 
 **Done when:** `pip install tabaudit` works on a clean machine and the repo is public with a release.
 
-## Phase 4 — Prove it: fault-injection evaluation  (1 day, after 2.5 + 3.5)
+## Phase 4 — Prove it: fault-injection evaluation  (1 day)  ✅ done 2026-09-15
 
 Goal: today the evidence is "found real problems in 4 of 10 datasets". An interviewer will
 ask *"how do you know it isn't missing things, and what's the false-positive rate?"* — and
@@ -144,12 +144,12 @@ columns, what fraction we wrongly accused.
     half the minority-class count, **and** promote missingness-AUC to a real detection path
     (a column whose *missingness alone* scores ≥ NEAR_PERFECT is a leak). Add a test with a
     0.2 % positive class. Re-run `evaluate.py creditcard` → expect 3/3.
-- [ ] **4.5** `docs/evaluation.md`: the per-check table, then an honest "what this does not
+- [x] **4.5** _(done 2026-09-15)_ `docs/evaluation.md`: the per-check table, then an honest "what this does not
   show" paragraph — injected flips are *uniform random*; real label noise is
   class-conditional and feature-dependent (see `docs/label_noise_review.md`), so the recall
   number is an **upper bound**. Link it from README under a new "How well does it detect
   things?" section, and update the résumé bullet in `../AI_ML_Portfolio_Projects.md`.
-- [ ] **4.6** Commit, push. (`benchmarks/eval_results.json` is committed — it *is* the
+- [x] **4.6** _(each step was committed and pushed as it finished)_ Commit, push. (`benchmarks/eval_results.json` is committed — it *is* the
   evidence; the OpenML cache stays ignored.)
 
 **Done when:** `docs/evaluation.md` has precision/recall/FPR for every check over ≥ 8 datasets
@@ -319,3 +319,11 @@ Planted-flip numbers (per-tier baseline): likely 0.79/0.57 → **0.80/0.64**, su
 (re-measured), résumé wording updated. `evaluate.py` now uses per-tier baselines. **Next: 4.5**
 (`docs/evaluation.md`, README section, résumé numbers). Resume: activate `.venv`
 (`pip install -e ".[dev]"` if rebuilt — cleanlab no longer needed), `pytest -q` → 46 passed.
+
+**2026-09-15 (end of day)** — **4.5 done → Phase 4 complete.** `docs/evaluation.md` written
+(setup, results table, per-dataset label-noise table, what the harness changed, what it does
+*not* show, reproduce). README gained "How well does it detect things?"; résumé bullets and
+interview talking points updated in `../AI_ML_Portfolio_Projects.md`. **Still open: 2.5 (make
+repo public) and 3.5 (LinkedIn post) — both yours.** Then decide: release the unreleased
+changes as 0.1.1 now, or fold into 0.2.0 with Phase 6; and whether Phase 5 (adoption) is worth
+the ½ day. Resume: activate `.venv`, `pytest -q` → 46 passed.

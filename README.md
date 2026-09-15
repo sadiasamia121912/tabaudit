@@ -125,6 +125,28 @@ wrong on the first run and how it was fixed: [`docs/benchmarks.md`](https://gith
 
 Reproduce with `python benchmarks/run_benchmarks.py` (~6 min, downloads ~50 MB).
 
+## How well does it detect things?
+
+Finding real problems is one thing; knowing what the tool *misses* is another. So faults
+were **planted** in the same ten datasets — 5 % duplicate rows, 3 % random label flips, a
+noisy copy of the target, a column filled in only for one class — with known locations, and
+the audit was scored against them (3 seeds each, 120 runs, ~3 min):
+
+| check | planted fault | result |
+|---|---|---|
+| duplicates | 5 % exact copies | found 30 / 30, precision 1.00 |
+| leakage | target copy + noise | detected **30 / 30**, 0 innocent columns accused |
+| leakage | column present only for one class | detected **30 / 30**, 0 innocent columns accused |
+| label noise ("likely") | 3 % random flips | precision **0.80** (excluding the dataset's own pre-existing noise), recall **0.64** |
+
+The first run of this harness found a blind spot (leaks confined to a class smaller than
+the tree's leaf size — creditcard's 36 fraud rows) and showed that the cleanlab filter used
+in v0.1.0 added nothing over the model's own self-confidence; both were fixed, and the ten
+real-data scores did not change. What these numbers do and do not show — random flips are
+an upper bound on real recall — is spelled out in
+[`docs/evaluation.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/evaluation.md).
+Reproduce with `python benchmarks/evaluate.py`.
+
 ## How the hard checks work
 
 _Short version. Every threshold, and the reason for it, is in [`docs/checks.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/checks.md)._
