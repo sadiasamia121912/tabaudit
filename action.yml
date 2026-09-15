@@ -1,0 +1,60 @@
+name: tabaudit
+description: Audit tabular datasets for target leakage, duplicates, label noise and schema problems; fail the job on what you choose.
+author: sadiasamia121912
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  data:
+    description: Data file(s) to audit - space-separated paths or shell globs (CSV, TSV, Parquet, Feather, JSON-lines).
+    required: true
+  target:
+    description: Label column name (needed for leakage, imbalance and label-noise checks; must be the same in every file).
+    required: false
+    default: ""
+  checks:
+    description: Comma-separated subset of checks (schema, duplicates, imbalance, leakage, label_noise). Default is all.
+    required: false
+    default: ""
+  fail-on:
+    description: Fail on any finding of this severity or worse (critical | high | medium | low). Empty or 'none' disables.
+    required: false
+    default: high
+  fail-under:
+    description: Fail if a file's health score (0-100) is below this. Empty disables.
+    required: false
+    default: ""
+  max-rows:
+    description: Row cap for model-based checks; larger files are sampled.
+    required: false
+    default: "50000"
+  python-version:
+    description: Python version to run tabaudit with.
+    required: false
+    default: "3.12"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    # Install the exact code this action was pinned to (e.g. @v0.2.0), not whatever PyPI
+    # serves today - so the flags in this file always match the CLI that runs.
+    - name: Install tabaudit
+      shell: bash
+      run: python -m pip install --quiet "${{ github.action_path }}"
+
+    - name: Audit
+      shell: bash
+      run: |
+        args=()
+        [ -n "${{ inputs.target }}" ]     && args+=(--target "${{ inputs.target }}")
+        [ -n "${{ inputs.checks }}" ]     && args+=(--checks "${{ inputs.checks }}")
+        [ -n "${{ inputs.fail-under }}" ] && args+=(--fail-under "${{ inputs.fail-under }}")
+        args+=(--fail-on "${{ inputs.fail-on || 'none' }}")
+        args+=(--max-rows "${{ inputs.max-rows }}")
+        # word-split and glob-expand `data` on purpose
+        tabaudit gate ${{ inputs.data }} "${args[@]}"

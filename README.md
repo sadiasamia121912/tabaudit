@@ -126,6 +126,36 @@ wrong on the first run and how it was fixed: [`docs/benchmarks.md`](https://gith
 
 Reproduce with `python benchmarks/run_benchmarks.py` (~6 min, downloads ~50 MB).
 
+## Use it as a gate
+
+`tabaudit gate` audits one or more files and prints a pass/fail line each; exit code 1 if
+any file fails, so it plugs into anything that reads exit codes.
+
+**GitHub Actions** — one step, pinned to a release tag:
+
+```yaml
+- uses: sadiasamia121912/tabaudit@v0.2.0
+  with:
+    data: data/*.csv        # one or more files / globs
+    target: label           # omit for unsupervised checks only
+    fail-on: high           # any HIGH or CRITICAL finding fails the job
+    fail-under: 75          # optional score bar (0-100)
+```
+
+**pre-commit** — every data file you commit gets audited:
+
+```yaml
+- repo: https://github.com/sadiasamia121912/tabaudit
+  rev: v0.2.0
+  hooks:
+    - id: tabaudit
+      args: ["--target", "label", "--fail-on", "high"]
+      files: ^data/.*\.csv$
+```
+
+**Anything else** — `tabaudit gate data/*.csv -t label --fail-on high --fail-under 75`.
+Use `--fail-on none` to gate on the score alone.
+
 ## How well does it detect things?
 
 Finding real problems is one thing; knowing what the tool *misses* is another. So faults

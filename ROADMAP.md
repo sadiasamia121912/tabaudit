@@ -164,7 +164,7 @@ CI pipeline". Each item is small; the sum is what makes it look like a real tool
 - [x] **5.1** _(done 2026-09-15; `--fail-under` already existed since v0.1.0 — the roadmap had mis-named it `--fail-below` — so this added `--fail-on`)_ `tabaudit audit data.csv --target y --fail-under 70` → exit code 1 when the
   score is under the bar; `--fail-on high` → exit 1 on any finding of that severity or worse.
   Exit codes are how CI systems decide pass/fail. Tests for both flags.
-- [ ] **5.2** `action.yml` (composite GitHub Action: install tabaudit, run with `--fail-below`)
+- [x] **5.2** _(done 2026-09-15; added `tabaudit gate FILE...` so one invocation handles many files, which pre-commit needs; CI has an `action-self-test` job that runs the Action on demo data and asserts it fails on the planted leak. **README snippets pin `@v0.2.0` — that tag must exist before the repo goes public.**)_ `action.yml` (composite GitHub Action: install tabaudit, run with `--fail-under`)
   and `.pre-commit-hooks.yaml`. A 6-line usage example of each in the README.
 - [ ] **5.3** README "How it compares": one table vs `ydata-profiling`, `deepchecks`,
   `cleanlab` — which of the 5 checks each covers, gives a score?, fixes?, install size,
@@ -327,3 +327,11 @@ interview talking points updated in `../AI_ML_Portfolio_Projects.md`. **Still op
 repo public) and 3.5 (LinkedIn post) — both yours.** Then decide: release the unreleased
 changes as 0.1.1 now, or fold into 0.2.0 with Phase 6; and whether Phase 5 (adoption) is worth
 the ½ day. Resume: activate `.venv`, `pytest -q` → 46 passed.
+
+**2026-09-15 (Phase 5 started)** — 5.1 `--fail-on SEVERITY` (`--fail-under` already existed).
+5.2: `tabaudit gate FILE...` (one line per file, exit 1 on any failure, 2 on unreadable file,
+`--fail-on none` for score-only gating), `action.yml` composite Action that installs the
+pinned ref itself (not PyPI, so flags always match the code), `.pre-commit-hooks.yaml`, CI
+self-test of the Action, README "Use it as a gate". 51 tests. The Action snippet pins
+`@v0.2.0` → **a release must come before the repo goes public**. **Next: 5.3** (comparison
+table) or skip to the release.

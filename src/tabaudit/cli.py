@@ -54,6 +54,34 @@ def _root(
     """[bold cyan]tabaudit[/bold cyan] - find the problems in your dataset before your model does."""
 
 
+def _parse_fail_on(value: str | None) -> Severity | None:
+    if value is None or value.lower() == "none":
+        return None
+    try:
+        return Severity(value.lower())
+    except ValueError:
+        choices = [s.value for s in Severity if s != Severity.INFO] + ["none"]
+        err.print(f"[bold red]error:[/bold red] --fail-on must be one of {choices}")
+        raise typer.Exit(code=2) from None
+
+
+def _gate_failures(report, fail_under: int | None, fail_sev: Severity | None) -> list[str]:
+    """Why this report fails the CI gate - empty list means it passes."""
+    reasons = []
+    if fail_under is not None and report.score < fail_under:
+        reasons.append(f"score {report.score} < {fail_under}")
+    if fail_sev is not None:
+        # rank: CRITICAL=0 ... INFO=4, so "this severity or worse" is rank <= threshold rank
+        hits = [f for f in report.findings if f.severity.rank <= fail_sev.rank]
+        if hits:
+            worst = min(hits, key=lambda f: f.severity.rank)
+            reasons.append(
+                f"{len(hits)} finding(s) at {fail_sev.value} or worse "
+                f"(worst: {worst.severity.value} - {worst.title})"
+            )
+    return reasons
+
+
 @app.command()
 def audit(
     data: Path = typer.Argument(..., help="CSV / TSV / Parquet / Feather / JSON-lines file."),
@@ -82,15 +110,7 @@ def audit(
 ) -> None:
     """Audit a dataset and print a health report."""
     selected = [c.strip() for c in checks.split(",")] if checks else None
-    fail_sev: Severity | None = None
-    if fail_on is not None:
-        try:
-            fail_sev = Severity(fail_on.lower())
-        except ValueError:
-            err.print(
-                f"[bold red]error:[/bold red] --fail-on must be one of {[s.value for s in Severity]}"
-            )
-            raise typer.Exit(code=2) from None
+    fail_sev = _parse_fail_on(fail_on)
     try:
         with Status("[cyan]loading…", console=console, spinner="dots") as status:
 
@@ -124,20 +144,58 @@ def audit(
         Path(json_out).write_text(json.dumps(report.to_dict(), indent=2), encoding="utf-8")
         console.print(f"[dim]JSON report →[/dim] {Path(json_out).resolve()}")
 
-    failed = False
-    if fail_under is not None and report.score < fail_under:
-        err.print(f"[bold red]FAIL[/bold red] score {report.score} < {fail_under}")
-        failed = True
-    if fail_sev is not None:
-        # rank: CRITICAL=0 ... INFO=4, so "this severity or worse" is rank <= threshold rank
-        hits = [f for f in report.findings if f.severity.rank <= fail_sev.rank]
-        if hits:
-            worst = min(hits, key=lambda f: f.severity.rank)
-            err.print(
-                f"[bold red]FAIL[/bold red] {len(hits)} finding(s) at {fail_sev.value} or worse "
-                f"(worst: {worst.severity.value} - {worst.title})"
-            )
-            failed = True
+    reasons = _gate_failures(report, fail_under, fail_sev)
+    for reason in reasons:
+        err.print(f"[bold red]FAIL[/bold red] {reason}")
+    if reasons:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def gate(
+    files: list[Path] = typer.Argument(..., help="One or more data files."),
+    target: str | None = typer.Option(
+        None, "--target", "-t", help="Label column name (must be the same in every file)."
+    ),
+    checks: str | None = typer.Option(
+        None, "--checks", "-c", help="Comma-separated subset of checks (see `tabaudit checks`)."
+    ),
+    max_rows: int = typer.Option(
+        50_000, help="Row cap for model-based checks (sampled above this)."
+    ),
+    fail_under: int | None = typer.Option(
+        None, "--fail-under", help="Fail a file whose health score is below this."
+    ),
+    fail_on: str | None = typer.Option(
+        "high",
+        "--fail-on",
+        help="Fail a file with any finding of this severity or worse "
+        "(critical | high | medium | low), or 'none' to gate on the score only. Default: high.",
+    ),
+) -> None:
+    """Audit several files and print one pass/fail line each (for pre-commit and CI).
+
+    Exit code 1 if any file fails the gate, 2 if a file cannot be audited.
+    """
+    selected = [c.strip() for c in checks.split(",")] if checks else None
+    fail_sev = _parse_fail_on(fail_on)
+    failed = errored = 0
+    for path in files:
+        try:
+            report = run_audit(path, target=target, checks=selected, max_rows=max_rows)
+        except (FileNotFoundError, KeyError, ValueError) as exc:
+            console.print(f"[bold red]✖[/bold red] {path}: {exc}")
+            errored += 1
+            continue
+        reasons = _gate_failures(report, fail_under, fail_sev)
+        line = f"{path}: score {report.score}/100 (grade {report.grade})"
+        if reasons:
+            console.print(f"[bold red]✖[/bold red] {line} - " + "; ".join(reasons))
+            failed += 1
+        else:
+            console.print(f"[bold green]✔[/bold green] {line}")
+    if errored:
+        raise typer.Exit(code=2)
     if failed:
         raise typer.Exit(code=1)
 

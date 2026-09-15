@@ -70,6 +70,39 @@ def test_fail_on_rejects_unknown_severity(tmp_path):
     assert res.exit_code == 2
 
 
+def test_gate_reports_each_file_and_fails_on_the_leak(tmp_path):
+    train, test = write_demo(tmp_path)
+    res = runner.invoke(
+        app, ["gate", str(train), str(test), "-t", "churn", "-c", "schema,leakage"]
+    )  # default --fail-on high; the demo plants a CRITICAL leak
+    assert res.exit_code == 1
+    assert res.output.count("✖") == 2
+    assert "critical" in res.output
+
+
+def test_gate_passes_clean_checks_and_can_gate_on_score_only(tmp_path):
+    train, _ = write_demo(tmp_path)
+    ok = runner.invoke(app, ["gate", str(train), "-c", "imbalance"])
+    assert ok.exit_code == 0 and "✔" in ok.output
+    # --fail-on none: only the score matters
+    assert (
+        runner.invoke(app, ["gate", str(train), "-c", "schema", "--fail-on", "none"]).exit_code == 0
+    )
+    assert (
+        runner.invoke(
+            app, ["gate", str(train), "-c", "schema", "--fail-on", "none", "--fail-under", "99"]
+        ).exit_code
+        == 1
+    )
+
+
+def test_gate_unreadable_file_is_exit_2(tmp_path):
+    train, _ = write_demo(tmp_path)
+    res = runner.invoke(app, ["gate", str(train), str(tmp_path / "missing.csv"), "-c", "schema"])
+    assert res.exit_code == 2
+    assert "missing.csv" in res.output
+
+
 def test_missing_file_is_a_clean_error():
     res = runner.invoke(app, ["audit", "nope.csv"])
     assert res.exit_code == 2

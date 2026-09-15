@@ -25,3 +25,33 @@ jobs:
       - run: pytest -q
       - name: Demo smoke test
         run: tabaudit demo --out demo_out --no-html
+
+  # The GitHub Action in action.yml, run against the demo data. The demo plants a CRITICAL
+  # leak, so the gate must FAIL; a passing gate here would mean the action is broken.
+  action-self-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e . && tabaudit demo --out demo_out --no-html
+      - id: gate
+        uses: ./
+        continue-on-error: true
+        with:
+          data: demo_out/*.csv
+          target: churn
+          checks: schema,duplicates,leakage
+          fail-on: high
+      - name: Assert the gate failed on the planted leak
+        if: steps.gate.outcome != 'failure'
+        run: |
+          echo "::error::action passed on data with a planted CRITICAL leak"
+          exit 1
+      - id: gate-clean
+        uses: ./
+        with:
+          data: demo_out/churn_test.csv
+          checks: schema
+          fail-on: high
