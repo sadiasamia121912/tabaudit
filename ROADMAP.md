@@ -99,7 +99,7 @@ Definitions (one line each): *precision* = of the rows we flagged, what fraction
 planted; *recall* = of the rows we planted, what fraction we flagged; *FPR* = of the innocent
 columns, what fraction we wrongly accused.
 
-- [ ] **4.1** Findings must expose *which* rows they mean, or nothing can be scored. Add
+- [x] **4.1** _(done 2026-09-15: `evidence["rows"]` on both findings, plus `rows_likely` for label noise; 30 tests pass)_ Findings must expose *which* rows they mean, or nothing can be scored. Add
   `"rows": [...]` (all affected indices, not just the top 25) to the `evidence` of the
   label-noise finding (both tiers) and the exact-duplicates finding. Leakage already has
   `columns`. Keep the existing top-25 `suspects` list for the report. Tests: `rows` has the
@@ -120,6 +120,16 @@ columns, what fraction we wrongly accused.
   injected truth and keep the value with the best F1 on the "likely" tier. Do the same for
   the leakage gap rule *only if* FPR > 5 %. Change a constant only when the data says so, and
   record the sweep table in `docs/checks.md` next to the threshold.
+  **Early evidence (from the 4.1 test, 2026-09-15):** on a perfectly separable toy set with
+  20 planted flips, the model gives the planted labels only 1–18 % probability, yet cleanlab's
+  `confident_learning` filter flags just 7–11 of them. Reason: it only counts a disagreement
+  when the other class's probability beats that class's *threshold* = mean self-confidence of
+  the class (≈ 0.94 on an easy task), so a row at 88 % "you're wrong" is not confident
+  *enough*. `filter_by="predicted_neq_given"` and the plain rule `self_conf < 0.2` both got
+  19–20/20 with 0 false alarms on the toy. So the sweep should also compare *filters*, not just
+  the 0.2 constant: `confident_learning ∧ self_conf<t` (today) vs `self_conf<t` alone vs
+  `predicted_neq_given ∧ self_conf<t`. Judge on real datasets — the toy has no ambiguous rows,
+  real data does (`docs/label_noise_review.md`).
 - [ ] **4.5** `docs/evaluation.md`: the per-check table, then an honest "what this does not
   show" paragraph — injected flips are *uniform random*; real label noise is
   class-conditional and feature-dependent (see `docs/label_noise_review.md`), so the recall
@@ -253,3 +263,9 @@ and 3.5 (LinkedIn post).
 features. Added **Phase 4 — fault-injection evaluation** (precision/recall/FPR per check)
 and **Phase 5 — adoption** (CI exit codes, GitHub Action, comparison table, profiling);
 the `fix` design moved to **Phase 6**, stretch to **Phase 7**. Next: 2.5 and 3.5, then 4.1.
+
+**2026-09-15 (evening)** — **4.1 done.** `duplicates` and `label_noise` findings now list every
+affected row in `evidence["rows"]` (`rows_likely` too for label noise); verified in the JSON
+report on demo data. Found while writing the test: cleanlab's `confident_learning` recovers
+only ~half of obvious planted flips — noted under 4.4, *not* changed yet. **Next: 4.2**
+(`benchmarks/inject.py`). Resume: activate `.venv`, `pytest -q` → 30 passed.

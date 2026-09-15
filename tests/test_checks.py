@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from tabaudit import Severity, run_audit
-from tabaudit.checks import duplicates, imbalance, leakage, schema
+from tabaudit.checks import duplicates, imbalance, label_noise, leakage, schema
 from tabaudit.context import AuditContext
 from tabaudit.loader import infer_task
 
@@ -53,6 +53,8 @@ def test_duplicates_exact_rows():
     dup = next(x for x in f if "exact duplicate" in x.title)
     assert dup.severity == Severity.HIGH
     assert dup.evidence["n_duplicates"] == 20
+    # The copies are the appended rows 200..219 — the ones drop_duplicates() would remove.
+    assert dup.evidence["rows"] == list(range(200, 220))
 
 
 def test_duplicates_conflicting_labels():
@@ -71,6 +73,32 @@ def test_duplicates_train_test_overlap_is_critical():
     ov = next(x for x in f if "also appear in the training set" in x.title)
     assert ov.severity == Severity.CRITICAL
     assert ov.evidence["n_overlap"] == 10
+
+
+# ----------------------------------------------------------- label noise ----
+def test_label_noise_exposes_flagged_rows():
+    # Perfectly separable data, then flip 20 labels far from the boundary so the flips are
+    # unambiguous. The full `rows` list is what the fault-injection benchmark scores against.
+    # Own RNG: recall depends on the draw, and the shared RNG's state depends on test order.
+    rng = np.random.default_rng(1)
+    n = 600
+    x1 = rng.normal(size=n)
+    df = pd.DataFrame({"x1": x1, "x2": rng.normal(size=n), "y": (x1 > 0).astype(int)})
+    flipped = df.index[df["x1"].abs() > 1.0][:20]
+    df.loc[flipped, "y"] = 1 - df.loc[flipped, "y"]
+
+    f = label_noise.run(ctx_for(df))
+    assert len(f) == 1
+    ev = f[0].evidence
+    assert len(ev["rows"]) == ev["n_suspected"]
+    assert len(ev["rows_likely"]) == ev["n_likely"]
+    assert set(ev["rows_likely"]) <= set(ev["rows"])
+    assert ev["rows"][: len(ev["top_suspects"])] == [s["row"] for s in ev["top_suspects"]]
+    # Recall is deliberately not asserted high: cleanlab's confident_learning filter only
+    # flags a third to a half of these flips even though the model gives them <20% probability
+    # (see ROADMAP 4.4). This floor pins current behaviour so a regression is noticed.
+    recovered = set(ev["rows"]) & set(flipped)
+    assert len(recovered) >= 5, f"only {len(recovered)}/20 planted flips were flagged"
 
 
 # ------------------------------------------------------------- imbalance ----

@@ -92,6 +92,11 @@ def run(ctx: AuditContext) -> list[Finding]:
     else:
         sev = Severity.INFO
 
+    # Every flagged row, most-confident first. The report shows the top TOP_N; the full lists
+    # exist so the benchmark can score precision/recall against planted label flips.
+    rows_suspected = [int(Xe.index[i]) for i in issue_idx]
+    rows_likely = [int(Xe.index[i]) for i in issue_idx if likely[i]]
+
     # Top suspects, for the report.
     suspects = []
     for i in issue_idx[:TOP_N]:
@@ -129,6 +134,8 @@ def run(ctx: AuditContext) -> list[Finding]:
                 "fraction_likely": round(frac_likely, 4),
                 "fraction_suspected": round(frac_suspected, 4),
                 "top_suspects": suspects,
+                "rows": rows_suspected,
+                "rows_likely": rows_likely,
             },
         )
     ]

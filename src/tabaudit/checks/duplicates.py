@@ -34,7 +34,12 @@ def run(ctx: AuditContext) -> list[Finding]:
                 detail="Identical rows will land in both train and validation folds, "
                 "inflating every cross-validation metric.",
                 recommendation="`df.drop_duplicates()` before splitting.",
-                evidence={"n_duplicates": n_full, "fraction": round(frac, 4)},
+                # `rows` = the copies (keep="first"), i.e. exactly what drop_duplicates() removes.
+                evidence={
+                    "n_duplicates": n_full,
+                    "fraction": round(frac, 4),
+                    "rows": df.index[full_dup].tolist(),
+                },
             )
         )
 
