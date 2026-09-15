@@ -14,7 +14,7 @@ _Last updated: 2026-09-15. Companion to `../AI_ML_Portfolio_Projects.md` (the 3-
 | Benchmarks on real datasets | ✅ 10 datasets in `docs/benchmarks.md`, gap-based leakage fix verified on them |
 | README benchmark table + GIF | ✅ |
 | Public repo | ❌ your click: Settings → Danger zone → Change visibility |
-| PyPI release (`pip install tabaudit`) | ✅ 0.1.0 (2026-09-14); 0.2.0 built 2026-09-15 — see session log for upload status |
+| PyPI release (`pip install tabaudit`) | ✅ 0.2.0 live 2026-09-15 (0.1.0 on 2026-09-14), verified in a fresh venv |
 
 **How to get running again (every session):**
 ```powershell
@@ -350,3 +350,9 @@ Changed / Fixed for 0.2.0, one-paragraph 0.1.0). `dist/` rebuilt clean, `twine c
 wheel installed in a fresh venv: `tabaudit 0.2.0`, no cleanlab, `gate` exits 1 on the demo
 leak. Phase 6 renumbered to v0.3.0; 5.4 skipped. Release steps still to run after the go-ahead:
 `git tag v0.2.0 && git push --tags`, `twine upload dist/*`, `gh release create v0.2.0`.
+
+**2026-09-15 (released)** — **tabaudit 0.2.0 is on PyPI** (https://pypi.org/project/tabaudit/0.2.0/),
+tag `v0.2.0` pushed, GitHub release created with CHANGELOG notes + wheel/sdist. Verified:
+`pip install tabaudit==0.2.0` in a fresh venv → `tabaudit 0.2.0`, no cleanlab, `gate` works.
+The README's `@v0.2.0` Action / pre-commit snippets now resolve. **Left: 2.5 (make repo
+public) and 3.5 (LinkedIn post).** Then Phase 6 (`fix`, v0.3.0) or Project 2.
