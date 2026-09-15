@@ -61,5 +61,9 @@ ignore = [
     "RUF001", "RUF002", "RUF003",  # we print unicode glyphs (×, →) on purpose
 ]
 
+[tool.ruff.lint.isort]
+known-first-party = ["tabaudit", "inject"]  # benchmarks/inject.py is ours, not a dependency
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["benchmarks"]  # lets tests import benchmarks/inject.py

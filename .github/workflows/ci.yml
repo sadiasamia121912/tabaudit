@@ -20,8 +20,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - run: pip install -e ".[dev]"
-      - run: ruff check src tests examples
-      - run: ruff format --check src tests examples
+      - run: ruff check src tests examples benchmarks
+      - run: ruff format --check src tests examples benchmarks
       - run: pytest -q
       - name: Demo smoke test
         run: tabaudit demo --out demo_out --no-html

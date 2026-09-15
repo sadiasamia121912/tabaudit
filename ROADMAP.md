@@ -104,7 +104,7 @@ columns, what fraction we wrongly accused.
   label-noise finding (both tiers) and the exact-duplicates finding. Leakage already has
   `columns`. Keep the existing top-25 `suspects` list for the report. Tests: `rows` has the
   expected length on `demo` data; JSON report still serialises.
-- [ ] **4.2** `benchmarks/inject.py` — one function per fault, each `(df, target, rng) ->
+- [x] **4.2** _(done 2026-09-15: 4 injectors + 12 tests, incl. "truth == what the check flags" for duplicates and both leaks; 42 tests pass)_ `benchmarks/inject.py` — one function per fault, each `(df, target, rng) ->
   (df_injected, truth)`: `inject_duplicates(frac=0.05)`, `inject_label_flips(frac=0.03)`,
   `inject_leak_copy(noise=0.1)`, `inject_leak_missingness()`. Pure functions, seeded, no I/O.
   Tests (`tests/test_inject.py`): each produces exactly the promised count and `truth` points
@@ -207,7 +207,7 @@ Phases 5–6 are optional — decide after Phase 4 whether they or Project 2 are
 ## Rules of thumb
 
 - One commit per finished checkbox; push at the end of each session.
-- Run `pytest -q && ruff check src tests examples` before every commit.
+- Run `pytest -q && ruff check src tests examples benchmarks` before every commit.
 - If something is taking > 2× the estimate, cut scope, don't extend time.
 
 ---
@@ -269,3 +269,9 @@ affected row in `evidence["rows"]` (`rows_likely` too for label noise); verified
 report on demo data. Found while writing the test: cleanlab's `confident_learning` recovers
 only ~half of obvious planted flips — noted under 4.4, *not* changed yet. **Next: 4.2**
 (`benchmarks/inject.py`). Resume: activate `.venv`, `pytest -q` → 30 passed.
+
+**2026-09-15 (night)** — **4.2 done.** `benchmarks/inject.py`: `inject_duplicates`,
+`inject_label_flips`, `inject_leak_copy`, `inject_leak_missingness`, each returning an
+`Injection(kind, df, rows, columns)`. Tests import it via `pythonpath = ["benchmarks"]` in
+`pyproject.toml`; CI now lints `benchmarks/` too. **Next: 4.3** (`benchmarks/evaluate.py`).
+Resume: activate `.venv`, `pytest -q` → 42 passed.
