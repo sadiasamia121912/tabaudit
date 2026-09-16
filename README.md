@@ -107,19 +107,21 @@ Ten well-known public datasets, loaded straight from OpenML and audited with **d
 settings** — no tuning, no column dropping. Full write-up, including what the tool got
 wrong on the first run and how it was fixed: [`docs/benchmarks.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/benchmarks.md).
 
-| dataset | rows | score | headline finding |
-|---|---:|:-:|---|
-| titanic | 1 309 | 64 C | **HIGH** `boat` predicts survival alone (AUC 0.97 vs next-best 0.74) — target leakage |
-| spambase | 4 601 | 75 B | **HIGH** 391 exact duplicate rows (8.5 %) |
-| creditcard | 284 807 | 78 B | **HIGH** 578 : 1 class imbalance; 9 144 duplicate rows |
-| telco-customer-churn | 7 043 | 80 B | `TotalCharges` is numeric but stored as text; 18 conflicting-label groups |
-| breast-w | 699 | 82 B | **HIGH** 236 exact duplicate rows (34 %) |
-| bank-marketing | 45 211 | 83 B | `duration` stands far above every other feature (AUC 0.81 vs 0.65) — a documented leak |
-| adult | 48 842 | 84 B | 5 groups of rows with identical features but different labels |
-| credit-g | 1 000 | 93 A | ~6 % of rows likely mislabeled |
-| heart-statlog | 270 | 93 A | ~6 % of rows likely mislabeled |
-| diabetes | 768 | 93 A | ~5 % of rows likely mislabeled |
+| dataset | rows | score | after `fix` | headline finding |
+|---|---:|:-:|:-:|---|
+| titanic | 1 309 | 64 C | 64 C | **HIGH** `boat` predicts survival alone (AUC 0.97 vs next-best 0.74) — target leakage |
+| spambase | 4 601 | 75 B | **90 A** | **HIGH** 391 exact duplicate rows (8.5 %) |
+| creditcard | 284 807 | 78 B | **85 B** | **HIGH** 578 : 1 class imbalance; 9 144 duplicate rows |
+| telco-customer-churn | 7 043 | 80 B | **86 B** | `TotalCharges` is numeric but stored as text; 18 conflicting-label groups |
+| breast-w | 699 | 82 B | **97 A** | **HIGH** 236 exact duplicate rows (34 %) |
+| bank-marketing | 45 211 | 83 B | 83 B | `duration` stands far above every other feature (AUC 0.81 vs 0.65) — a documented leak |
+| adult | 48 842 | 84 B | **87 B** | 5 groups of rows with identical features but different labels |
+| credit-g | 1 000 | 93 A | 93 A | ~6 % of rows likely mislabeled |
+| heart-statlog | 270 | 93 A | 93 A | ~6 % of rows likely mislabeled |
+| diabetes | 768 | 93 A | 93 A | ~5 % of rows likely mislabeled |
 
+- **"after `fix`"** is the score once `tabaudit fix` has applied only the fixes that need no
+  human decision — no flags. Five of ten improve, two by a whole grade, none gets worse.
 - **4 of 10 have a CRITICAL/HIGH finding; 10 of 10 have at least one MEDIUM.** Every HIGH
   is a documented property of the dataset (Titanic's lifeboat column, spambase and
   breast-w duplicates, creditcard's 0.17 % fraud rate).

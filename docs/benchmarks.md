@@ -18,18 +18,23 @@ adding it cannot move a score, and this run is the check on that claim.
 
 ## Summary
 
-| dataset | rows | cols | score | grade | headline finding |
-|---|---:|---:|---:|:-:|---|
-| titanic | 1 309 | 14 | 64 | C | **HIGH** `boat` predicts survival on its own (AUC 0.97, next-best 0.74) — target leakage |
-| adult | 48 842 | 15 | 84 | B | 5 groups of rows with identical features but different labels; 52 exact duplicates |
-| credit-g | 1 000 | 21 | 93 | A | ~6 % of rows likely mislabeled |
-| telco-customer-churn | 7 043 | 20 | 80 | B | `TotalCharges` is numeric but stored as text; 18 conflicting-label groups |
-| bank-marketing | 45 211 | 17 | 83 | B | **MEDIUM** `duration` stands far above every other feature (AUC 0.81 vs 0.65) — a documented leak |
-| breast-w | 699 | 10 | 82 | B | **HIGH** 236 exact duplicate rows (34 %) · INFO: 6 features ≥ 0.90 alone, "highly separable task" |
-| heart-statlog | 270 | 14 | 93 | A | ~6 % of rows likely mislabeled |
-| diabetes | 768 | 9 | 93 | A | ~5 % of rows likely mislabeled |
-| spambase | 4 601 | 58 | 75 | B | **HIGH** 391 exact duplicate rows (8.5 %) |
-| creditcard | 284 807 | 30 | 78 | B | **HIGH** 578 : 1 class imbalance · 9 144 exact duplicate rows (3.2 %) |
+| dataset | rows | cols | score | grade | after fix | headline finding |
+|---|---:|---:|---:|:-:|:-:|---|
+| titanic | 1 309 | 14 | 64 | C | 64 C | **HIGH** `boat` predicts survival on its own (AUC 0.97, next-best 0.74) — target leakage |
+| adult | 48 842 | 15 | 84 | B | **87 B** | 5 groups of rows with identical features but different labels; 52 exact duplicates |
+| credit-g | 1 000 | 21 | 93 | A | 93 A | ~6 % of rows likely mislabeled |
+| telco-customer-churn | 7 043 | 20 | 80 | B | **86 B** | `TotalCharges` is numeric but stored as text; 18 conflicting-label groups |
+| bank-marketing | 45 211 | 17 | 83 | B | 83 B | **MEDIUM** `duration` stands far above every other feature (AUC 0.81 vs 0.65) — a documented leak |
+| breast-w | 699 | 10 | 82 | B | **97 A** | **HIGH** 236 exact duplicate rows (34 %) · INFO: 6 features ≥ 0.90 alone, "highly separable task" |
+| heart-statlog | 270 | 14 | 93 | A | 93 A | ~6 % of rows likely mislabeled |
+| diabetes | 768 | 9 | 93 | A | 93 A | ~5 % of rows likely mislabeled |
+| spambase | 4 601 | 58 | 75 | B | **90 A** | **HIGH** 391 exact duplicate rows (8.5 %) |
+| creditcard | 284 807 | 30 | 78 | B | **85 B** | **HIGH** 578 : 1 class imbalance · 9 144 exact duplicate rows (3.2 %) |
+
+*"after fix" = the score once `tabaudit fix` has applied the fixes that need no human
+decision — no flags, nothing authorised. Five of the ten move, two of them a whole grade, and
+none moves down; what each dataset did and refused is in
+[the next section](#what-tabaudit-fix-does-to-them).*
 
 **4 of 10 datasets have a CRITICAL/HIGH finding; 10 of 10 have at least one MEDIUM.**
 Every HIGH finding is a real, documented property of the dataset (the one false positive
