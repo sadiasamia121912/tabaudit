@@ -2,7 +2,11 @@
 
 All notable changes to tabaudit. Versions follow [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.3.0 — 2026-09-16
+
+The fix release: tabaudit stops at "here is what is wrong with your data" only where stopping
+is the honest answer. It now repairs what has exactly one defensible fix, prices what it
+refuses to touch, and hands back preprocessing as code rather than as a transformed file.
 
 ### Added
 - **`impact` check** — prices what `leakage` flagged instead of only naming it: two

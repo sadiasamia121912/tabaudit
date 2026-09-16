@@ -41,7 +41,7 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
-    # Install the exact code this action was pinned to (e.g. @v0.2.0), not whatever PyPI
+    # Install the exact code this action was pinned to (e.g. @v0.3.0), not whatever PyPI
     # serves today - so the flags in this file always match the CLI that runs.
     - name: Install tabaudit
       shell: bash

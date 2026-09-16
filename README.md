@@ -183,7 +183,7 @@ any file fails, so it plugs into anything that reads exit codes.
 **GitHub Actions** — one step, pinned to a release tag:
 
 ```yaml
-- uses: sadiasamia121912/tabaudit@v0.2.0
+- uses: sadiasamia121912/tabaudit@v0.3.0
   with:
     data: data/*.csv        # one or more files / globs
     target: label           # omit for unsupervised checks only
@@ -195,7 +195,7 @@ any file fails, so it plugs into anything that reads exit codes.
 
 ```yaml
 - repo: https://github.com/sadiasamia121912/tabaudit
-  rev: v0.2.0
+  rev: v0.3.0
   hooks:
     - id: tabaudit
       args: ["--target", "label", "--fail-on", "high"]
