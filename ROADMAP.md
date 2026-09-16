@@ -14,7 +14,7 @@ _Last updated: 2026-09-15. Companion to `../AI_ML_Portfolio_Projects.md` (the 3-
 | Benchmarks on real datasets | ✅ 10 datasets in `docs/benchmarks.md`, gap-based leakage fix verified on them |
 | README benchmark table + GIF | ✅ |
 | Public repo | ❌ your click: Settings → Danger zone → Change visibility |
-| PyPI release (`pip install tabaudit`) | ✅ 0.2.0 live 2026-09-15 (0.1.0 on 2026-09-14), verified in a fresh venv |
+| PyPI release (`pip install tabaudit`) | ✅ **0.3.0 live 2026-09-16** (0.2.0 on 09-15, 0.1.0 on 09-14), verified in a fresh venv |
 
 **How to get running again (every session):**
 ```powershell
@@ -200,7 +200,7 @@ time (see `docs/label_noise_review.md`: 5 of 10 suspects were ambiguous) and wro
 - [x] **6.4** _(done 2026-09-16)_ `tabaudit fix data.csv --target y [--drop-leaky] [--flag-noise] [--out clean.csv]`. Prints the plan (✔ applied / ? needs a flag), writes `<name>.clean.csv` + `<name>.fixplan.json`. Exit code 0 even when unsafe fixes are skipped — skipping is the correct behaviour, not an error.
 - [x] **6.5** _(done 2026-09-16)_ `pipeline.py`: generate `<name>_pipeline.py` — a scikit-learn `ColumnTransformer` skeleton from the cleaned frame's dtypes: `StandardScaler` for numeric, `OneHotEncoder(handle_unknown="ignore")` for categoricals with ≤ 20 levels, `OrdinalEncoder` above that, `SimpleImputer` where nulls were found. Header comment explaining *why this is code and not a transformed CSV* (fit on train only). This is generated **text**, not applied transformation — keep it that way.
 - [x] **6.6** _(done 2026-09-16)_ Re-run `benchmarks/run_benchmarks.py` with `fix` on the 10 datasets → add a "rows/cols removed by safe fixes" column to `docs/benchmarks.md`. Sanity check: score after `fix` ≥ score before on every dataset.
-- [ ] **6.7** `docs/fix.md`: the table above + one worked example (bank-marketing `duration`). README section "Fixing what it finds". Bump to 0.3.0, `python -m build`, `twine upload`, tag, release.
+- [x] **6.7** _(done 2026-09-16)_ `docs/fix.md`: the table above + one worked example (bank-marketing `duration`). README section "Fixing what it finds". Bump to 0.3.0, `python -m build`, `twine upload`, tag, release.
 - [ ] **6.8** Second LinkedIn post: *"v0.3: tabaudit now fixes what it finds — and why it refuses to fix some things"*.
 
 - [x] **6.9** _(done 2026-09-16)_ **`impact` check — what the flagged columns are worth.** Two cross-validated models on the same rows and folds (`X_encoded` vs `X_encoded_clean`, the regularised GBM `label_noise` already uses): held-out AUC/R² with the leaky + identifier columns and without, reported as both scores plus the gap. Severity **INFO / penalty 0** on purpose — the defect is already scored by the check that flagged it, so no benchmark score moved. Runs only when something was flagged (`adult`: 0.00 s, no finding); 1.1 s on titanic, 13.6 s on bank-marketing's 45 k rows (two model fits, obeys `--max-rows`). Real results: **titanic 0.991 → 0.875 (gap 0.116, `boat` + `name`)**, bank-marketing 0.933 → 0.800 (gap 0.133, the documented `duration` leak), demo 1.000 → 0.761 (gap 0.239). Score invariance verified on real data too: titanic still 64 C, bank-marketing still 83 B, exactly as in `docs/benchmarks.md`. 6 new tests, incl. one that locks the score-invariance and one that documents the honest caveat (an *honest* dominant feature is priced identically — the gap is the size of the bet, not proof).
@@ -451,3 +451,19 @@ constant or `Unnamed: 0` column. New section in `docs/benchmarks.md`, plus a REA
 
 **Left before 0.3.0:** 6.7 (version bump, build, upload, tag, release notes), 6.11 (rebuild
 `docs/demo.gif`), 6.8 (LinkedIn post).
+
+**2026-09-16 (6.7: 0.3.0 released)** — **tabaudit 0.3.0 is on PyPI**
+(https://pypi.org/project/tabaudit/0.3.0/), tag `v0.3.0` pushed, GitHub release created with
+notes + wheel/sdist. Verified *before* uploading, in a fresh venv off the built wheel: version
+0.3.0, no cleanlab, `demo` shows the impact finding and the per-check bars, `fix` writes the
+cleaned CSV + fix plan + pipeline, the generated pipeline runs (held-out accuracy 0.816), and
+`gate --fail-on high` still exits 1 on the planted leak. Verified again after uploading with
+`pip install tabaudit==0.3.0` from PyPI. README / `action.yml` / pre-commit pins all moved to
+`v0.3.0`, so those snippets resolve against the new tag.
+
+**Phase 6 is done.** Left on the whole project: **2.5** (make the repo public — your click),
+**6.11** (rebuild `docs/demo.gif`; the verdict panel changed twice), **6.8 / 3.5** (the
+LinkedIn posts). Note that until the repo is public, the README images on the PyPI page
+(`raw.githubusercontent.com/.../docs/demo.gif`) cannot load for anonymous visitors — that has
+been true since 0.1.0 and going public fixes it. Then: Project 2 (LLM → tiny model
+distillation).
