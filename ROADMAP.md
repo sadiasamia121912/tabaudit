@@ -356,3 +356,17 @@ tag `v0.2.0` pushed, GitHub release created with CHANGELOG notes + wheel/sdist. 
 `pip install tabaudit==0.2.0` in a fresh venv → `tabaudit 0.2.0`, no cleanlab, `gate` works.
 The README's `@v0.2.0` Action / pre-commit snippets now resolve. **Left: 2.5 (make repo
 public) and 3.5 (LinkedIn post).** Then Phase 6 (`fix`, v0.3.0) or Project 2.
+
+**2026-09-16 (comparison refresh)** — README "How it compares" updated: `ydata-profiling` was
+renamed **`fg-data-profiling`** in Apr 2026 (now 4.20; the old package gets no more updates), so
+the row is relabelled and re-linked. Added a fifth column for
+**[`dataleaks`](https://pypi.org/project/dataleaks/) 0.1.2** — a leakage-only CLI first released
+2026-09-06, ten days before tabaudit 0.1.0, i.e. the nearest competitor. Measured in a throwaway
+venv (since deleted): adds **1 MB** (pandas only), **1.5 s** on `adult` vs tabaudit's 9.8 s,
+works on pandas 3 / numpy 2.5. Probed with `benchmarks/inject.py` on `adult`: **0 findings on all
+four injected faults** (duplicates, 3 % label flips, noisy target copy, missingness leak), and 0
+on Titanic — its `target_statistical` detector is Pearson `|r| >= 0.999` and `feature_suspicious`
+is a column-name regex + `|r| >= 0.90`, so nothing model-based. It *does* catch an exact target
+copy (CRITICAL) and train/test row overlap (HIGH), but exits 0 regardless, so it can't gate CI.
+Where it genuinely leads: **temporal, preprocessing (fit-before-split) and cross-dataset
+leakage** — which is Phase 7 here, now with a competitor's taxonomy to aim at.

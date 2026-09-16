@@ -180,39 +180,55 @@ Reproduce with `python benchmarks/evaluate.py`.
 
 ## How it compares
 
-Measured 2026-09-15 on a laptop, `adult` (48 842 rows × 15 columns) loaded from CSV, each
-tool at its defaults, best of 2–3 runs. "Adds" = install size on top of the
-numpy + pandas + scikit-learn stack (314 MB) that all four need.
+Measured on a laptop, `adult` (48 842 rows × 15 columns) loaded from CSV, each tool at its
+defaults, best of 2–3 runs (2026-09-15; `dataleaks` added 2026-09-16). "Adds" = install size
+on top of the numpy + pandas + scikit-learn stack (314 MB) the first four need — `dataleaks`
+needs only pandas.
 
-| | tabaudit | [ydata-profiling](https://github.com/ydataai/ydata-profiling) 4.18 | [deepchecks](https://github.com/deepchecks/deepchecks) 0.19 | [cleanlab](https://github.com/cleanlab/cleanlab) 2.9 |
-|---|:-:|:-:|:-:|:-:|
-| what it is | dataset auditor, CLI-first | EDA report generator | ML validation suites (data, train/test, model) | label-quality library |
-| target leakage (single feature) | ✅ AUC/R² + missingness, gap rule | ❌ | ✅ feature–label PPS | ❌ |
-| train/test overlap | ✅ | ❌ | ✅ `TrainTestSamplesMix` | ❌ |
-| exact duplicates | ✅ | ✅ | ✅ | ✅ (+ near-duplicates) |
-| conflicting labels | ✅ | ❌ | ✅ | ❌ |
-| class imbalance | ✅ target-aware | ⚠️ per-column alerts | ✅ | ✅ |
-| label noise (per-row suspects) | ✅ out-of-fold self-confidence | ❌ | ❌ | ✅ confident learning, you supply the probabilities |
-| schema: missing / constant / numeric-as-text | ✅ | ✅ | ✅ | ⚠️ nulls only |
-| drift, outliers, model evaluation | ❌ | ❌ | ✅ | ✅ outliers |
-| one overall score | ✅ 0–100 + grade | ❌ | ❌ per-check pass/fail | ❌ per-issue-type scores |
-| CI gate out of the box | ✅ `--fail-on` / `--fail-under`, Action, pre-commit | ❌ | ⚠️ via conditions + your code | ❌ |
-| needs a model / probabilities from you | ❌ | ❌ | ❌ | ✅ for label issues |
-| measured detection quality published | ✅ [`docs/evaluation.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/evaluation.md) | ❌ | ❌ | ✅ papers |
-| adds to install | **14 MB** | 338 MB | 176 MB | 2 MB (124 MB with `[datalab]`) |
-| time on `adult` | **9.8 s** (all 5 checks) | 18.8 s (default report), 8.1 s (`minimal`) | 7.9 s (`data_integrity`, 12 checks) | 10.0 s (label issues; 99 s with `features` for near-duplicates/outliers) |
-| worked with current numpy 2 / scikit-learn 1.9 / pandas 3 | ✅ | ⚠️ pins `pandas<3` (downgraded it); project marked deprecated in favour of a successor | ❌ needed `numpy<2` and `scikit-learn<1.8` to import | ✅ |
+| | tabaudit | [fg-data-profiling](https://github.com/Data-Centric-AI-Community/fg-data-profiling) (ex `ydata-profiling`, measured at 4.18) | [deepchecks](https://github.com/deepchecks/deepchecks) 0.19 | [cleanlab](https://github.com/cleanlab/cleanlab) 2.9 | [dataleaks](https://github.com/KAVYA-29-ai/Dataleaks) 0.1.2 |
+|---|:-:|:-:|:-:|:-:|:-:|
+| what it is | dataset auditor, CLI-first | EDA report generator | ML validation suites (data, train/test, model) | label-quality library | leakage-only auditor, CLI + Python API |
+| target leakage (single feature) | ✅ AUC/R² + missingness, gap rule | ❌ | ✅ feature–label PPS | ❌ | ⚠️ Pearson \|r\| ≥ 0.999, or a column-name regex + \|r\| ≥ 0.90 |
+| train/test overlap | ✅ | ❌ | ✅ `TrainTestSamplesMix` | ❌ | ✅ exact + near-duplicates + shared values/entities |
+| exact duplicates | ✅ | ✅ | ✅ | ✅ (+ near-duplicates) | ⚠️ across splits only, not within one file |
+| conflicting labels | ✅ | ❌ | ✅ | ❌ | ❌ |
+| class imbalance | ✅ target-aware | ⚠️ per-column alerts | ✅ | ✅ | ❌ |
+| label noise (per-row suspects) | ✅ out-of-fold self-confidence | ❌ | ❌ | ✅ confident learning, you supply the probabilities | ❌ |
+| schema: missing / constant / numeric-as-text | ✅ | ✅ | ✅ | ⚠️ nulls only | ⚠️ train/test dtype mismatch only |
+| temporal / preprocessing / cross-dataset leakage | ❌ (Phase 7) | ❌ | ⚠️ date + index leakage | ❌ | ✅ you name the time columns / pass workflow metadata |
+| drift, outliers, model evaluation | ❌ | ❌ | ✅ | ✅ outliers | ❌ |
+| one overall score | ✅ 0–100 + grade | ❌ | ❌ per-check pass/fail | ❌ per-issue-type scores | ✅ 0–1 risk score + level |
+| CI gate out of the box | ✅ `--fail-on` / `--fail-under`, Action, pre-commit | ❌ | ⚠️ via conditions + your code | ❌ | ❌ exits 0 even on a CRITICAL finding |
+| needs a model / probabilities from you | ❌ | ❌ | ❌ | ✅ for label issues | ❌ |
+| measured detection quality published | ✅ [`docs/evaluation.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/evaluation.md) | ❌ | ❌ | ✅ papers | ❌ |
+| adds to install | **14 MB** | 338 MB | 176 MB | 2 MB (124 MB with `[datalab]`) | **1 MB** |
+| time on `adult` | 9.8 s (all 5 checks) | 18.8 s (default report), 8.1 s (`minimal`) | 7.9 s (`data_integrity`, 12 checks) | 10.0 s (label issues; 99 s with `features` for near-duplicates/outliers) | **1.5 s** |
+| worked with current numpy 2 / scikit-learn 1.9 / pandas 3 | ✅ | ⚠️ pins `pandas<3` (downgraded it); renamed `fg-data-profiling` in Apr 2026 (now 4.20), the `ydata-profiling` package gets no more updates | ❌ needed `numpy<2` and `scikit-learn<1.8` to import | ✅ | ✅ (pandas only) |
 
 **Where tabaudit loses.** deepchecks covers far more ground — drift, outliers, model
 evaluation, weak segments, date/index leakage — and has a mature suite/condition system;
 if you already have a model and a train/test split, it is the more complete tool.
-ydata-profiling is a much richer *exploration* report (distributions, correlations,
+fg-data-profiling is a much richer *exploration* report (distributions, correlations,
 interactions) and is the right thing for the first look at unfamiliar data. cleanlab's
 label-issue detection is more general (multi-class, near-duplicates, outliers, images,
 text) and comes with a decade of research behind it; tabaudit's own evaluation found that
 on *tabular binary* targets its filter added nothing over self-confidence, which says more
 about that setting than about cleanlab. tabaudit is the small, opinionated one: five
 checks, one number, an exit code, and a published measurement of what it misses.
+
+**`dataleaks`** (first released 2026-09-06) is the closest thing to a direct competitor, and
+it names *kinds* of leakage tabaudit does not look for at all: temporal (feature timestamps
+recorded after the prediction time, test dates before train dates), preprocessing (a scaler
+fit before the split), and cross-dataset entity overlap — the Phase 7 items on this roadmap.
+It is 6× faster and needs only pandas. The trade-off is that its detectors are correlation-
+and name-based rather than model-based: run on the four faults from
+[`docs/evaluation.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/evaluation.md),
+planted in `adult` with the same `benchmarks/inject.py` injectors, it reported **no findings**
+for any of them (duplicates, 3 % label flips, a noisy target copy, a missingness leak), and it
+reports none on Titanic either, where `boat` is the textbook leak. It does catch an exact copy
+of the target (CRITICAL) and rows shared between train and test (HIGH) — but it exits 0 either
+way, so it cannot gate a pipeline as shipped. At v0.1.x that is a fair place for it to be; the
+useful read is that the two tools overlap less than their descriptions suggest.
 
 ## How the hard checks work
 
