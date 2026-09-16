@@ -198,7 +198,7 @@ time (see `docs/label_noise_review.md`: 5 of 10 suspects were ambiguous) and wro
 - [x] **6.2** _(done 2026-09-16)_ Emit fixes from the checks that can — `duplicates.py` (drop_rows, safe), `schema.py` (drop_columns / coerce_dtype, safe), `leakage.py` (drop_columns, **unsafe**, flag `--drop-leaky`), `label_noise.py` (flag_rows, unsafe, flag `--flag-noise` → adds a `tabaudit_suspect` bool column). `imbalance.py` emits **no** fix — its recommendation text is the fix. Tests: each check's fix has the right rows/columns on `demo` data.
 - [x] **6.3** _(done 2026-09-16)_ `fix.py`: `apply_fixes(df, report, enabled_flags) -> (clean_df, FixPlan)`. Apply order matters: drop columns first, then drop rows, then flag rows. `FixPlan` records what was applied, what was skipped and why, row/col counts before/after. Tests: applying the plan twice is a no-op; skipped unsafe fixes are listed.
 - [x] **6.4** _(done 2026-09-16)_ `tabaudit fix data.csv --target y [--drop-leaky] [--flag-noise] [--out clean.csv]`. Prints the plan (✔ applied / ? needs a flag), writes `<name>.clean.csv` + `<name>.fixplan.json`. Exit code 0 even when unsafe fixes are skipped — skipping is the correct behaviour, not an error.
-- [ ] **6.5** `pipeline.py`: generate `<name>_pipeline.py` — a scikit-learn `ColumnTransformer` skeleton from the cleaned frame's dtypes: `StandardScaler` for numeric, `OneHotEncoder(handle_unknown="ignore")` for categoricals with ≤ 20 levels, `OrdinalEncoder` above that, `SimpleImputer` where nulls were found. Header comment explaining *why this is code and not a transformed CSV* (fit on train only). This is generated **text**, not applied transformation — keep it that way.
+- [x] **6.5** _(done 2026-09-16)_ `pipeline.py`: generate `<name>_pipeline.py` — a scikit-learn `ColumnTransformer` skeleton from the cleaned frame's dtypes: `StandardScaler` for numeric, `OneHotEncoder(handle_unknown="ignore")` for categoricals with ≤ 20 levels, `OrdinalEncoder` above that, `SimpleImputer` where nulls were found. Header comment explaining *why this is code and not a transformed CSV* (fit on train only). This is generated **text**, not applied transformation — keep it that way.
 - [ ] **6.6** Re-run `benchmarks/run_benchmarks.py` with `fix` on the 10 datasets → add a "rows/cols removed by safe fixes" column to `docs/benchmarks.md`. Sanity check: score after `fix` ≥ score before on every dataset.
 - [ ] **6.7** `docs/fix.md`: the table above + one worked example (bank-marketing `duration`). README section "Fixing what it finds". Bump to 0.3.0, `python -m build`, `twine upload`, tag, release.
 - [ ] **6.8** Second LinkedIn post: *"v0.3: tabaudit now fixes what it finds — and why it refuses to fix some things"*.
@@ -418,3 +418,21 @@ is the whole design in one transcript and now the worked example in `docs/fix.md
 (re-run benchmarks with `fix`, add a rows/cols-removed column), 6.7 (0.3.0 release: version
 bump, build, upload, tag; `docs/fix.md` and the README section are already written), 6.8
 (second LinkedIn post), plus 6.11 (rebuild `docs/demo.gif`).
+
+**2026-09-16 (6.5: generated pipeline code)** — `src/tabaudit/pipeline.py` turns the cleaned
+frame into `<name>_pipeline.py`: dtype-driven `ColumnTransformer` (scale / one-hot ≤ 20 levels
+/ ordinal above / impute only where nulls exist), datetimes named but left out with a note,
+`remainder="drop"`, and an `EXCLUDED` list carrying the flagged-but-kept columns *and the
+finding that named them* — including `tabaudit_suspect`, which must never become a feature.
+Written by `tabaudit fix` unless `--no-pipeline`.
+
+It is a real file, not a sketch: the test suite executes it (`held-out accuracy: 0.816`,
+`5-fold: 0.817 +/- 0.014` on the demo; R2 0.692 on a synthetic regression set). It also has to
+survive the *user's* linter, so the generator wraps to 88 columns (not this repo's 100), emits
+double-quoted literals and sorted imports, and a test runs `ruff check --isolated` and
+`ruff format --check` over the output — which is what caught the one line that was too long.
+9 new tests (78 total).
+
+**Phase 6 is now functionally complete.** Left: 6.6 (re-run benchmarks with `fix`), 6.7 (0.3.0
+release — `docs/fix.md` and the README section are written, so it is version bump + build +
+upload + tag), 6.8 (LinkedIn post), 6.11 (rebuild `docs/demo.gif`).

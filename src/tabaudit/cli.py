@@ -19,6 +19,7 @@ from tabaudit.checks import REGISTRY
 from tabaudit.findings import Severity
 from tabaudit.fix import FixPlan, apply_fixes
 from tabaudit.loader import load_table, write_table
+from tabaudit.pipeline import generate_pipeline
 from tabaudit.report import render_console, render_html
 
 app = typer.Typer(
@@ -199,6 +200,12 @@ def fix(
     plan_out: Path | None = typer.Option(
         None, "--plan", help="Where to write the fix plan JSON (default: <name>.fixplan.json)."
     ),
+    pipeline: bool = typer.Option(
+        True,
+        "--pipeline/--no-pipeline",
+        help="Also write <name>_pipeline.py: scikit-learn preprocessing code for the cleaned "
+        "data. Scaling and encoding are emitted as code, never applied to the file.",
+    ),
     checks: str | None = typer.Option(
         None, "--checks", "-c", help="Comma-separated subset of checks (see `tabaudit checks`)."
     ),
@@ -248,6 +255,31 @@ def fix(
         raise typer.Exit(code=2) from None
     plan_path.write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
 
+    pipeline_path = None
+    if pipeline:
+        # Columns tabaudit flagged that are still in the file must not become model inputs.
+        excluded = {
+            c: f"{s.check}: {s.title}"
+            for s in plan.skipped
+            if s.action == "drop_columns"
+            for c in s.columns
+            if c in clean.columns
+        }
+        for s in plan.applied:
+            if s.action == "flag_rows":
+                excluded.update(dict.fromkeys(s.columns, "tabaudit's own marker, not a feature"))
+        pipeline_path = out_path.with_name(f"{data.stem}_pipeline.py")
+        pipeline_path.write_text(
+            generate_pipeline(
+                clean,
+                target,
+                report.summary.task,
+                data_name=out_path.name,
+                exclude=excluded,
+            ),
+            encoding="utf-8",
+        )
+
     unchanged = plan.rows_after == plan.rows_before and plan.cols_after == plan.cols_before
     if unchanged and not plan.applied:
         shape = (
@@ -275,6 +307,8 @@ def fix(
             )
     console.print(f"[dim]cleaned data →[/dim] {out_path.resolve()}")
     console.print(f"[dim]fix plan →[/dim] {plan_path.resolve()}")
+    if pipeline_path is not None:
+        console.print(f"[dim]pipeline code →[/dim] {pipeline_path.resolve()}")
     if not quiet:
         tgt = f" --target {target}" if target else ""
         console.print(f"[dim]check it:[/dim] tabaudit audit {out_path}{tgt}")

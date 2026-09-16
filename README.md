@@ -160,7 +160,10 @@ tabaudit fix train.csv --target churn --drop-leaky --flag-noise  # you take the 
 
 That last cell is the important one. A scaler fitted on a whole file bakes test-set
 statistics into training data — the exact contamination this tool exists to detect — so
-transformations are never written into the data. On `bank-marketing` the honest output is that
+transformations are never written into the data. They are written as **code**: every run also
+produces `<name>_pipeline.py`, a `ColumnTransformer` + `Pipeline` built from the cleaned
+frame's dtypes, with the flagged-but-kept columns listed in `EXCLUDED` and the reason on the
+line above. It runs as-is (`python churn_train_pipeline.py` → `held-out accuracy: 0.816`). On `bank-marketing` the honest output is that
 **nothing changes**: both findings there are judgement calls, and the tool says so rather than
 quietly deleting a column that may be a real feature. Full reasoning, both worked examples and
 the guards: [`docs/fix.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/fix.md).
@@ -349,7 +352,7 @@ Checks run in registry order and may communicate through `ctx.excluded_features`
 - [x] `pre-commit` hook and GitHub Action — see [Use it as a gate](#use-it-as-a-gate)
 - [x] Measured detection quality by fault injection — see [How well does it detect things?](#how-well-does-it-detect-things)
 - [x] Apply the safe fixes, refuse the rest — see [Fixing what it finds](#fixing-what-it-finds)
-- [ ] Generate leak-free `scikit-learn` pipeline code from the cleaned frame
+- [x] Generate leak-free `scikit-learn` pipeline code from the cleaned frame — see [Fixing what it finds](#fixing-what-it-finds)
 
 ## License
 

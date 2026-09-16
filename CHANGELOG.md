@@ -22,6 +22,12 @@ All notable changes to tabaudit. Versions follow [Semantic Versioning](https://s
   statistics leak into training data. Writes `<name>.clean.csv` + `<name>.fixplan.json`, leaves
   the input untouched, and exits 0 with fixes outstanding. On `bank-marketing` the correct
   output is that nothing changes; see [`docs/fix.md`](docs/fix.md).
+- **Generated pipeline code** — every `tabaudit fix` run also writes `<name>_pipeline.py`
+  (`--no-pipeline` to skip): a `ColumnTransformer` + `Pipeline` from the cleaned frame's
+  dtypes — `StandardScaler` for numeric, `OneHotEncoder(handle_unknown="ignore")` up to 20
+  levels, `OrdinalEncoder` above that, `SimpleImputer` only where nulls exist, datetimes left
+  out with a note, flagged-but-kept columns in `EXCLUDED` with the finding that named them,
+  and `remainder="drop"`. It runs as written; a test executes it end-to-end.
 - **`Fix` on every finding that has one** — `action` / `params` / `safe` / `flag`, serialised
   with the finding, plus `tabaudit.fix.apply_fixes(df, report, flags)` and a `FixPlan` that
   records what was applied, what was skipped and why.

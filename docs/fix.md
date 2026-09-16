@@ -38,8 +38,55 @@ numbers the model trains on — which is precisely the contamination `tabaudit a
 detect. A tool that fixed leakage by introducing leakage would be worse than no tool.
 
 So transformations are emitted as **code you run inside a pipeline**, not applied to data.
-(`tabaudit fix` handles the row/column edits above; pipeline generation is the next piece of
-this phase.)
+Every `tabaudit fix` run writes `<name>_pipeline.py` alongside the cleaned file (pass
+`--no-pipeline` to skip it):
+
+```python
+NUMERIC = ["age", "tenure_months", "monthly_charges", "support_calls", "referral_code"]
+LOW_CARDINALITY = ["contract", "payment_method"]
+HIGH_CARDINALITY = []
+# Present in the file but NOT used as model inputs, because tabaudit flagged them:
+#   churn_reason: leakage: 1 feature(s) predict the target almost perfectly on their own
+#   customer_id: leakage: 1 identifier-like column(s) present as features
+# Delete an entry to train with it anyway - deliberately, not by accident.
+EXCLUDED = ["churn_reason", "customer_id"]
+
+numeric_steps = Pipeline(
+    [
+        ("impute", SimpleImputer(strategy="median")),
+        ("scale", StandardScaler()),
+    ]
+)
+...
+preprocess = ColumnTransformer(
+    [
+        ("num", numeric_steps, NUMERIC),
+        ("low", low_card_steps, LOW_CARDINALITY),
+    ],
+    remainder="drop",
+)
+```
+
+It is a working file, not a sketch — `python churn_train_pipeline.py` on the demo data prints
+`held-out accuracy: 0.816` and `5-fold: 0.817 +/- 0.014`, and a test in the suite runs exactly
+that to make sure the generated code stays runnable.
+
+What the generator decides, and why:
+
+| | rule |
+|---|---|
+| numeric (and boolean) | `StandardScaler`, with `SimpleImputer(strategy="median")` **only if** that group actually has nulls |
+| categorical, ≤ 20 levels | `OneHotEncoder(handle_unknown="ignore")` — unseen levels at predict time become all-zeros instead of an exception |
+| categorical, > 20 levels | `OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)` — one-hot would explode the matrix |
+| datetime | listed in `DATETIME` and **left out**, with a comment: a raw timestamp is rarely a useful input and often encodes collection order |
+| flagged-but-kept columns | listed in `EXCLUDED` with the finding that named them, and excluded from the model inputs |
+| `tabaudit_suspect` | excluded — it is tabaudit's opinion about a row, not a feature; training on it would leak the auditor into the model |
+| everything else | `remainder="drop"`, so nothing reaches the model by accident |
+
+The `EXCLUDED` list is the one to look at twice. A column you told `fix` to keep in the data is
+still kept — the file is unchanged — but the *code* does not feed it to the model, and says why
+on the line above. Deleting an entry takes one keystroke; leaving a leak in by accident now
+takes a decision.
 
 ## Worked example: the fix that changes nothing
 
