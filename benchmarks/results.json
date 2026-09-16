@@ -12,7 +12,7 @@
       "high": 1,
       "medium": 3,
       "low": 0,
-      "info": 0
+      "info": 1
     },
     "has_headline_issue": true,
     "findings": [
@@ -53,10 +53,34 @@
           "cabin",
           "boat"
         ]
+      },
+      {
+        "check": "impact",
+        "severity": "info",
+        "title": "Held-out AUC 0.991 with the 2 flagged column(s), 0.875 without",
+        "detail": "0.116 of the apparent AUC rests on boat, name. Without them the same model scores 0.875.",
+        "columns": [
+          "boat",
+          "name"
+        ]
       }
     ],
     "check_errors": [],
-    "seconds": 2.9
+    "fix": {
+      "rows_removed": 0,
+      "cols_removed": 0,
+      "n_applied": 0,
+      "n_skipped": 3,
+      "flags_offered": [
+        "--drop-leaky",
+        "--flag-noise"
+      ],
+      "applied": [],
+      "score_after": 64,
+      "grade_after": "C",
+      "seconds": 0.0
+    },
+    "seconds": 3.7
   },
   {
     "dataset": "adult",
@@ -109,7 +133,22 @@
       }
     ],
     "check_errors": [],
-    "seconds": 15.3
+    "fix": {
+      "rows_removed": 52,
+      "cols_removed": 0,
+      "n_applied": 1,
+      "n_skipped": 1,
+      "flags_offered": [
+        "--flag-noise"
+      ],
+      "applied": [
+        "duplicates: dropped 52 row(s)"
+      ],
+      "score_after": 87,
+      "grade_after": "B",
+      "seconds": 9.3
+    },
+    "seconds": 18.4
   },
   {
     "dataset": "credit-g",
@@ -139,7 +178,20 @@
       }
     ],
     "check_errors": [],
-    "seconds": 2.3
+    "fix": {
+      "rows_removed": 0,
+      "cols_removed": 0,
+      "n_applied": 0,
+      "n_skipped": 1,
+      "flags_offered": [
+        "--flag-noise"
+      ],
+      "applied": [],
+      "score_after": 93,
+      "grade_after": "A",
+      "seconds": 0.0
+    },
+    "seconds": 2.8
   },
   {
     "dataset": "telco-customer-churn",
@@ -192,7 +244,23 @@
       }
     ],
     "check_errors": [],
-    "seconds": 4.2
+    "fix": {
+      "rows_removed": 22,
+      "cols_removed": 0,
+      "n_applied": 2,
+      "n_skipped": 1,
+      "flags_offered": [
+        "--flag-noise"
+      ],
+      "applied": [
+        "schema: coerced 1 column(s) to numeric",
+        "duplicates: dropped 22 row(s)"
+      ],
+      "score_after": 86,
+      "grade_after": "B",
+      "seconds": 4.8
+    },
+    "seconds": 9.7
   },
   {
     "dataset": "bank-marketing",
@@ -207,7 +275,7 @@
       "high": 0,
       "medium": 2,
       "low": 1,
-      "info": 0
+      "info": 1
     },
     "has_headline_issue": false,
     "findings": [
@@ -237,10 +305,33 @@
         "columns": [
           "Class"
         ]
+      },
+      {
+        "check": "impact",
+        "severity": "info",
+        "title": "Held-out AUC 0.933 with the 1 flagged column(s), 0.800 without",
+        "detail": "0.133 of the apparent AUC rests on duration. Without them the same model scores 0.800.",
+        "columns": [
+          "duration"
+        ]
       }
     ],
     "check_errors": [],
-    "seconds": 14.1
+    "fix": {
+      "rows_removed": 0,
+      "cols_removed": 0,
+      "n_applied": 0,
+      "n_skipped": 2,
+      "flags_offered": [
+        "--drop-leaky",
+        "--flag-noise"
+      ],
+      "applied": [],
+      "score_after": 83,
+      "grade_after": "B",
+      "seconds": 0.0
+    },
+    "seconds": 37.3
   },
   {
     "dataset": "breast-w",
@@ -291,7 +382,22 @@
       }
     ],
     "check_errors": [],
-    "seconds": 1.4
+    "fix": {
+      "rows_removed": 236,
+      "cols_removed": 0,
+      "n_applied": 1,
+      "n_skipped": 1,
+      "flags_offered": [
+        "--flag-noise"
+      ],
+      "applied": [
+        "duplicates: dropped 236 row(s)"
+      ],
+      "score_after": 97,
+      "grade_after": "A",
+      "seconds": 1.5
+    },
+    "seconds": 3.3
   },
   {
     "dataset": "heart-statlog",
@@ -321,7 +427,20 @@
       }
     ],
     "check_errors": [],
-    "seconds": 1.6
+    "fix": {
+      "rows_removed": 0,
+      "cols_removed": 0,
+      "n_applied": 0,
+      "n_skipped": 1,
+      "flags_offered": [
+        "--flag-noise"
+      ],
+      "applied": [],
+      "score_after": 93,
+      "grade_after": "A",
+      "seconds": 0.0
+    },
+    "seconds": 2.0
   },
   {
     "dataset": "diabetes",
@@ -351,7 +470,20 @@
       }
     ],
     "check_errors": [],
-    "seconds": 1.4
+    "fix": {
+      "rows_removed": 0,
+      "cols_removed": 0,
+      "n_applied": 0,
+      "n_skipped": 1,
+      "flags_offered": [
+        "--flag-noise"
+      ],
+      "applied": [],
+      "score_after": 93,
+      "grade_after": "A",
+      "seconds": 0.0
+    },
+    "seconds": 1.5
   },
   {
     "dataset": "spambase",
@@ -395,7 +527,22 @@
       }
     ],
     "check_errors": [],
-    "seconds": 10.2
+    "fix": {
+      "rows_removed": 391,
+      "cols_removed": 0,
+      "n_applied": 1,
+      "n_skipped": 1,
+      "flags_offered": [
+        "--flag-noise"
+      ],
+      "applied": [
+        "duplicates: dropped 391 row(s)"
+      ],
+      "score_after": 90,
+      "grade_after": "A",
+      "seconds": 9.6
+    },
+    "seconds": 20.8
   },
   {
     "dataset": "creditcard",
@@ -454,6 +601,21 @@
       }
     ],
     "check_errors": [],
-    "seconds": 41.6
+    "fix": {
+      "rows_removed": 9144,
+      "cols_removed": 0,
+      "n_applied": 1,
+      "n_skipped": 1,
+      "flags_offered": [
+        "--flag-noise"
+      ],
+      "applied": [
+        "duplicates: dropped 9,144 row(s)"
+      ],
+      "score_after": 85,
+      "grade_after": "B",
+      "seconds": 24.2
+    },
+    "seconds": 70.7
   }
 ]

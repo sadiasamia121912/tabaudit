@@ -22,6 +22,7 @@ from rich.table import Table
 from sklearn.datasets import fetch_openml
 
 from tabaudit import Severity, run_audit
+from tabaudit.fix import apply_fixes
 
 # ---------------------------------------------------------------------------
 # 1. What to audit.  (openml name, openml version, target column)
@@ -69,6 +70,13 @@ def audit_one(name: str, version: int, target: str, rename: dict | None = None) 
         df = df.rename(columns=rename)
     report = run_audit(df, target=target)  # max_rows left at the 50 000 default on purpose
 
+    # What `tabaudit fix` does unasked: only the fixes with exactly one right answer, no flags.
+    t_fix = time.perf_counter()
+    clean, plan = apply_fixes(df, report, target=target)
+    touched = any(s.n_rows or s.n_columns for s in plan.applied)
+    after = run_audit(clean, target=target) if touched else report
+    fix_seconds = round(time.perf_counter() - t_fix, 1)
+
     findings = report.sorted_findings()
     return {
         "dataset": name,
@@ -92,6 +100,17 @@ def audit_one(name: str, version: int, target: str, rename: dict | None = None) 
             for f in findings
         ],
         "check_errors": [c.note for c in report.checks if c.status == "error"],
+        "fix": {
+            "rows_removed": plan.rows_before - plan.rows_after,
+            "cols_removed": plan.cols_before - plan.cols_after,
+            "n_applied": len(plan.applied),
+            "n_skipped": len(plan.skipped),
+            "flags_offered": plan.flags_offered,
+            "applied": [f"{s.check}: {s.note}" for s in plan.applied],
+            "score_after": after.score,
+            "grade_after": after.grade,
+            "seconds": fix_seconds,
+        },
         "seconds": round(time.perf_counter() - t0, 1),
     }
 
@@ -131,20 +150,29 @@ def main(only: list[str]) -> None:
 # ---------------------------------------------------------------------------
 def print_summary(results: list[dict]) -> None:
     table = Table(title="tabaudit benchmark", show_lines=False)
-    for col in ("dataset", "rows", "score", "grade", "crit", "high", "med", "headline finding"):
-        table.add_column(col, justify="right" if col in {"rows", "score"} else "left")
+    cols = ("dataset", "rows", "score", "after", "safe fixes", "crit", "high", "med", "headline")
+    for col in cols:
+        table.add_column(col, justify="right" if col in {"rows", "score", "after"} else "left")
 
     for r in results:
         if "error" in r:
             table.add_row(r["dataset"], "-", "-", "-", "-", "-", "-", f"[red]{r['error']}[/]")
             continue
         top = next((f for f in r["findings"] if Severity(f["severity"]) in HEADLINE), None)
-        c = r["counts"]
+        c, fx = r["counts"], r.get("fix", {})
+        removed = []
+        if fx.get("rows_removed"):
+            removed.append(f"-{fx['rows_removed']:,} rows")
+        if fx.get("cols_removed"):
+            removed.append(f"-{fx['cols_removed']} col")
+        after = fx.get("score_after", r["score"])
+        style = "red" if after < r["score"] else "green" if after > r["score"] else "grey50"
         table.add_row(
             r["dataset"],
             f"{r['n_rows']:,}",
-            str(r["score"]),
-            r["grade"],
+            f"{r['score']} {r['grade']}",
+            f"[{style}]{after} {fx.get('grade_after', r['grade'])}[/]",
+            ", ".join(removed) or "[grey50]none[/]",
             str(c["critical"]),
             str(c["high"]),
             str(c["medium"]),
@@ -155,6 +183,15 @@ def print_summary(results: list[dict]) -> None:
     ok = [r for r in results if "error" not in r]
     n_hit = sum(r["has_headline_issue"] for r in ok)
     console.print(f"\n[bold]{n_hit} of {len(ok)}[/] datasets have a CRITICAL or HIGH finding.")
+
+    # The sanity check that matters: a safe fix must never make a dataset score worse.
+    worse = [r for r in ok if r.get("fix", {}).get("score_after", r["score"]) < r["score"]]
+    if worse:
+        console.print("[bold red]REGRESSION[/] - safe fixes lowered the score on:")
+        for r in worse:
+            console.print(f"  {r['dataset']}: {r['score']} -> {r['fix']['score_after']}")
+    else:
+        console.print("[green]Safe fixes never lowered a score.[/]")
 
 
 if __name__ == "__main__":

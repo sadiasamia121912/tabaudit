@@ -2,14 +2,19 @@
 
 Every dataset below was loaded straight from [OpenML](https://www.openml.org) and audited
 with **default settings** — `run_audit(df, target=...)`, no tuning, no column dropping —
-exactly what `tabaudit audit data.csv --target y` does. Total wall time: about 2 min on a
-laptop CPU for the nine small datasets, plus ~3.5 min for `creditcard` (285k rows).
+exactly what `tabaudit audit data.csv --target y` does. Each dataset is then run through
+`tabaudit fix` with no flags (safe fixes only) and re-audited, which is where the second
+table below comes from. Total wall time for all twenty audits: **2 min 50 s** on a laptop
+CPU, of which `creditcard` (285k rows) is 71 s.
 
 Reproduce: `python benchmarks/run_benchmarks.py` (writes `benchmarks/results.json`).
 Results as of tabaudit 0.1.0 with the gap-based leakage rule, 2026-09-14. Re-run 2026-09-15
 after the rare-class leakage fix (`docs/checks.md`, *Rare classes*): every score and every
 CRITICAL/HIGH/MEDIUM finding is unchanged; the only difference is creditcard's INFO note,
 which now lists 5 strong features instead of 3 because the tree can finally isolate the fraud rows.
+Re-run again 2026-09-16 with the `impact` check and `tabaudit fix` in the loop (unreleased,
+towards 0.3.0): **all ten scores are still identical** — `impact` only ever reports INFO, so
+adding it cannot move a score, and this run is the check on that claim.
 
 ## Summary
 
@@ -29,6 +34,45 @@ which now lists 5 strong features instead of 3 because the tree can finally isol
 **4 of 10 datasets have a CRITICAL/HIGH finding; 10 of 10 have at least one MEDIUM.**
 Every HIGH finding is a real, documented property of the dataset (the one false positive
 from the first run — breast-w's "leaky" features — was fixed; see "What the tool got wrong").
+
+## What `tabaudit fix` does to them
+
+The same ten datasets, run through `tabaudit fix` with **no flags** — only the fixes that have
+exactly one defensible answer — and then audited again. Nothing here was authorised by a human:
+this is what the tool is willing to do on its own.
+
+| dataset | score | after safe fixes | what it did | what it refused, pending a flag |
+|---|:-:|:-:|---|---|
+| breast-w | 82 B | **97 A** | dropped 236 duplicate rows (34 %) | ~2 % of rows likely mislabeled |
+| spambase | 75 B | **90 A** | dropped 391 duplicate rows (8.5 %) | ~2 % label noise |
+| creditcard | 78 B | **85 B** | dropped 9 144 duplicate rows (3.2 %) | 22 suspect rows (0.0 %) |
+| telco-customer-churn | 80 B | **86 B** | coerced `TotalCharges` to numeric; dropped 22 duplicate rows | ~4 % label noise |
+| adult | 84 B | **87 B** | dropped 52 duplicate rows | ~3 % label noise |
+| titanic | 64 C | 64 C | *nothing* | `boat` (leak, HIGH) and `name` (identifier-like) need `--drop-leaky`; ~6 % label noise |
+| bank-marketing | 83 B | 83 B | *nothing* | `duration` needs `--drop-leaky`; ~6 % label noise |
+| credit-g | 93 A | 93 A | *nothing* | ~6 % of rows likely mislabeled |
+| heart-statlog | 93 A | 93 A | *nothing* | ~6 % of rows likely mislabeled |
+| diabetes | 93 A | 93 A | *nothing* | ~5 % of rows likely mislabeled |
+
+**No dataset scored worse after a safe fix** — the sanity check the runner prints, and the
+reason this table exists. Five datasets improved, two of them by a whole grade; five were left
+exactly as they were.
+
+Two things worth reading out of this table:
+
+- **Every automatic improvement is a duplicate or a dtype.** Four of the five are `drop_duplicates()`,
+  the fifth adds one `pd.to_numeric`. That is the whole point: the fixes a tool can safely make
+  unasked are the boring ones, and they were still worth 3 to 15 points each.
+- **Half the datasets came out untouched, including the two with the most interesting defects.**
+  Titanic's `boat` and bank-marketing's `duration` are the headline findings of this entire
+  benchmark, and `fix` will not remove either without `--drop-leaky`. Neither will it act on
+  label noise anywhere, because [5 of 10 manually reviewed suspects were ambiguous rather than
+  wrong](label_noise_review.md). A tool that "cleaned" these five would be guessing on the
+  exact cases where guessing is most expensive.
+
+Not a single column was dropped across all ten datasets: none of them ships a constant column
+or a leftover `Unnamed: 0`. The column-dropping fixes are for data that has been through a
+spreadsheet, which these curated benchmark sets have not.
 
 ## Findings that are definitely real
 
@@ -150,3 +194,7 @@ It now matches whole words (`class_of_service` yes, `workclass` no).
 - Label-noise estimates are consistent (1–6 %). A manual review of the top 10 suspects
   found 5 that look clearly wrong and none that look like false alarms — the *ranking* is
   trustworthy, even though the exact percentage should not be quoted as fact.
+- The fixes that are safe to make unasked are worth real points — 3 to 15 of them on five of
+  the ten datasets, two of which go up a whole grade — and they are all duplicates and dtypes.
+  The interesting defects (Titanic `boat`, bank-marketing `duration`, label noise everywhere)
+  are exactly the ones `fix` leaves alone until a human says otherwise.

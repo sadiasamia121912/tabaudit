@@ -199,7 +199,7 @@ time (see `docs/label_noise_review.md`: 5 of 10 suspects were ambiguous) and wro
 - [x] **6.3** _(done 2026-09-16)_ `fix.py`: `apply_fixes(df, report, enabled_flags) -> (clean_df, FixPlan)`. Apply order matters: drop columns first, then drop rows, then flag rows. `FixPlan` records what was applied, what was skipped and why, row/col counts before/after. Tests: applying the plan twice is a no-op; skipped unsafe fixes are listed.
 - [x] **6.4** _(done 2026-09-16)_ `tabaudit fix data.csv --target y [--drop-leaky] [--flag-noise] [--out clean.csv]`. Prints the plan (✔ applied / ? needs a flag), writes `<name>.clean.csv` + `<name>.fixplan.json`. Exit code 0 even when unsafe fixes are skipped — skipping is the correct behaviour, not an error.
 - [x] **6.5** _(done 2026-09-16)_ `pipeline.py`: generate `<name>_pipeline.py` — a scikit-learn `ColumnTransformer` skeleton from the cleaned frame's dtypes: `StandardScaler` for numeric, `OneHotEncoder(handle_unknown="ignore")` for categoricals with ≤ 20 levels, `OrdinalEncoder` above that, `SimpleImputer` where nulls were found. Header comment explaining *why this is code and not a transformed CSV* (fit on train only). This is generated **text**, not applied transformation — keep it that way.
-- [ ] **6.6** Re-run `benchmarks/run_benchmarks.py` with `fix` on the 10 datasets → add a "rows/cols removed by safe fixes" column to `docs/benchmarks.md`. Sanity check: score after `fix` ≥ score before on every dataset.
+- [x] **6.6** _(done 2026-09-16)_ Re-run `benchmarks/run_benchmarks.py` with `fix` on the 10 datasets → add a "rows/cols removed by safe fixes" column to `docs/benchmarks.md`. Sanity check: score after `fix` ≥ score before on every dataset.
 - [ ] **6.7** `docs/fix.md`: the table above + one worked example (bank-marketing `duration`). README section "Fixing what it finds". Bump to 0.3.0, `python -m build`, `twine upload`, tag, release.
 - [ ] **6.8** Second LinkedIn post: *"v0.3: tabaudit now fixes what it finds — and why it refuses to fix some things"*.
 
@@ -436,3 +436,18 @@ double-quoted literals and sorted imports, and a test runs `ruff check --isolate
 **Phase 6 is now functionally complete.** Left: 6.6 (re-run benchmarks with `fix`), 6.7 (0.3.0
 release — `docs/fix.md` and the README section are written, so it is version bump + build +
 upload + tag), 6.8 (LinkedIn post), 6.11 (rebuild `docs/demo.gif`).
+
+**2026-09-16 (6.6: benchmarks re-run with `fix`)** — `run_benchmarks.py` now audits, applies the
+safe fixes with no flags, re-audits, and records rows/cols removed plus the score after; it
+prints a REGRESSION block if any safe fix ever lowers a score. All ten datasets, 2 min 50 s.
+
+**Two results worth keeping.** (1) Every one of the ten *before* scores is byte-identical to the
+published table, which is the real check that `impact` (INFO-only) cannot move a score. (2) Safe
+fixes never lowered a score: five datasets improved — breast-w **82 B → 97 A**, spambase **75 B →
+90 A**, creditcard 78 → 85, telco 80 → 86, adult 84 → 87 — and five were left exactly as they
+were, including both datasets with the famous leaks. Every automatic gain is duplicates or one
+dtype coercion; no column was dropped anywhere, because none of these curated sets ships a
+constant or `Unnamed: 0` column. New section in `docs/benchmarks.md`, plus a README pointer.
+
+**Left before 0.3.0:** 6.7 (version bump, build, upload, tag, release notes), 6.11 (rebuild
+`docs/demo.gif`), 6.8 (LinkedIn post).

@@ -158,6 +158,11 @@ tabaudit fix train.csv --target churn --drop-leaky --flag-noise  # you take the 
 |---|---|---|
 | exact duplicates · rows shared with the test set (dropped from **train**, never test) · constant columns · leftover `Unnamed: 0` columns · numbers stored as text · rows with no label | target leakage and identifier columns (`--drop-leaky`) · likely-mislabeled rows (`--flag-noise`, which *flags* them in a `tabaudit_suspect` column and never relabels or drops) | conflicting labels · mostly-missing and near-constant columns · class imbalance · **scaling, encoding, imputation** |
 
+Across the ten benchmark datasets, the safe fixes alone take **breast-w from 82 B to 97 A**
+and **spambase from 75 B to 90 A** (duplicates), and leave five datasets — including both with
+the famous leaks — untouched. No dataset ever scored worse afterwards:
+[`docs/benchmarks.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/benchmarks.md#what-tabaudit-fix-does-to-them).
+
 That last cell is the important one. A scaler fitted on a whole file bakes test-set
 statistics into training data — the exact contamination this tool exists to detect — so
 transformations are never written into the data. They are written as **code**: every run also

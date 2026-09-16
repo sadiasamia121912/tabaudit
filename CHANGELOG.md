@@ -33,6 +33,10 @@ All notable changes to tabaudit. Versions follow [Semantic Versioning](https://s
   records what was applied, what was skipped and why.
 - `tabaudit.loader.write_table` — writes CSV / TSV / Parquet / Feather / JSON-lines back out,
   never with an index column.
+- `benchmarks/run_benchmarks.py` now also applies the safe fixes and re-audits, recording
+  rows/columns removed and the score after. `docs/benchmarks.md` gains a table of it: five of
+  ten datasets improve (breast-w 82 B → 97 A, spambase 75 B → 90 A), five are untouched, and
+  none scores worse — which the runner asserts on every run.
 - **Per-check score breakdown** — `AuditReport.score_breakdown` (also in the JSON report,
   as "by check" bars in the terminal report and in the HTML health card): the same 0–100
   scale per check, so it is visible where the points went. A breakdown, not an average.
