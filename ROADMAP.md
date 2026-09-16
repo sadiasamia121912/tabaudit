@@ -194,10 +194,10 @@ time (see `docs/label_noise_review.md`: 5 of 10 suspects were ambiguous) and wro
 | Label noise | ❌ | flag rows, never relabel or drop |
 | Normalization / scaling / encoding | ❌ never applied to the file | must be fit on train *inside* the pipeline; a "normalized CSV" bakes test statistics into training |
 
-- [ ] **6.1** `Fix` dataclass in `findings.py`: `action` (`drop_rows` | `drop_columns` | `flag_rows` | `coerce_dtype`), `params: dict`, `safe: bool`, `flag: str | None` (the CLI flag that enables an unsafe fix). Add optional `fix: Fix | None = None` to `Finding`. Include it in `to_dict()`. Tests: serialisation round-trip.
-- [ ] **6.2** Emit fixes from the checks that can — `duplicates.py` (drop_rows, safe), `schema.py` (drop_columns / coerce_dtype, safe), `leakage.py` (drop_columns, **unsafe**, flag `--drop-leaky`), `label_noise.py` (flag_rows, unsafe, flag `--flag-noise` → adds a `tabaudit_suspect` bool column). `imbalance.py` emits **no** fix — its recommendation text is the fix. Tests: each check's fix has the right rows/columns on `demo` data.
-- [ ] **6.3** `fix.py`: `apply_fixes(df, report, enabled_flags) -> (clean_df, FixPlan)`. Apply order matters: drop columns first, then drop rows, then flag rows. `FixPlan` records what was applied, what was skipped and why, row/col counts before/after. Tests: applying the plan twice is a no-op; skipped unsafe fixes are listed.
-- [ ] **6.4** `tabaudit fix data.csv --target y [--drop-leaky] [--flag-noise] [--out clean.csv]`. Prints the plan (✔ applied / ? needs a flag), writes `<name>.clean.csv` + `<name>.fixplan.json`. Exit code 0 even when unsafe fixes are skipped — skipping is the correct behaviour, not an error.
+- [x] **6.1** _(done 2026-09-16)_ `Fix` dataclass in `findings.py`: `action` (`drop_rows` | `drop_columns` | `flag_rows` | `coerce_dtype`), `params: dict`, `safe: bool`, `flag: str | None` (the CLI flag that enables an unsafe fix). Add optional `fix: Fix | None = None` to `Finding`. Include it in `to_dict()`. Tests: serialisation round-trip.
+- [x] **6.2** _(done 2026-09-16)_ Emit fixes from the checks that can — `duplicates.py` (drop_rows, safe), `schema.py` (drop_columns / coerce_dtype, safe), `leakage.py` (drop_columns, **unsafe**, flag `--drop-leaky`), `label_noise.py` (flag_rows, unsafe, flag `--flag-noise` → adds a `tabaudit_suspect` bool column). `imbalance.py` emits **no** fix — its recommendation text is the fix. Tests: each check's fix has the right rows/columns on `demo` data.
+- [x] **6.3** _(done 2026-09-16)_ `fix.py`: `apply_fixes(df, report, enabled_flags) -> (clean_df, FixPlan)`. Apply order matters: drop columns first, then drop rows, then flag rows. `FixPlan` records what was applied, what was skipped and why, row/col counts before/after. Tests: applying the plan twice is a no-op; skipped unsafe fixes are listed.
+- [x] **6.4** _(done 2026-09-16)_ `tabaudit fix data.csv --target y [--drop-leaky] [--flag-noise] [--out clean.csv]`. Prints the plan (✔ applied / ? needs a flag), writes `<name>.clean.csv` + `<name>.fixplan.json`. Exit code 0 even when unsafe fixes are skipped — skipping is the correct behaviour, not an error.
 - [ ] **6.5** `pipeline.py`: generate `<name>_pipeline.py` — a scikit-learn `ColumnTransformer` skeleton from the cleaned frame's dtypes: `StandardScaler` for numeric, `OneHotEncoder(handle_unknown="ignore")` for categoricals with ≤ 20 levels, `OrdinalEncoder` above that, `SimpleImputer` where nulls were found. Header comment explaining *why this is code and not a transformed CSV* (fit on train only). This is generated **text**, not applied transformation — keep it that way.
 - [ ] **6.6** Re-run `benchmarks/run_benchmarks.py` with `fix` on the 10 datasets → add a "rows/cols removed by safe fixes" column to `docs/benchmarks.md`. Sanity check: score after `fix` ≥ score before on every dataset.
 - [ ] **6.7** `docs/fix.md`: the table above + one worked example (bank-marketing `duration`). README section "Fixing what it finds". Bump to 0.3.0, `python -m build`, `twine upload`, tag, release.
@@ -394,3 +394,27 @@ portfolio project, and adopting it would cost Projects 2 and 3. 57 tests pass, r
 `impact` also gave the README a row no competitor can tick. **Left: 2.5 (repo public), 3.5
 (LinkedIn post), 6.11 (rebuild the GIF before 0.3.0), then the rest of Phase 6 (`fix`).**
 
+**2026-09-16 (6.1–6.4: `tabaudit fix` works)** — `Fix(action, params, safe, flag)` on findings
+(validated in `__post_init__`; unsafe fixes must name their flag), fixes emitted by
+`duplicates` / `schema` / `leakage` / `label_noise`, `src/tabaudit/fix.py` with
+`apply_fixes(df, report, flags) -> (clean_df, FixPlan)`, and the `tabaudit fix` command
+(writes `<name>.clean.csv` + `<name>.fixplan.json`, input untouched, exit 0 with fixes
+outstanding). Apply order: drop_columns → coerce_dtype → drop_rows → flag_rows, so the flag
+column can never be dropped or coerced. Guards: the target is never dropped, a drop that would
+leave no features is skipped, applying a plan twice is a no-op. 12 new tests (69 total).
+
+**Two decisions worth remembering.** (1) ≥50 %-missing and near-constant columns emit **no fix
+at all** rather than an extra flag — drop-or-impute is a judgement call, and keeping the flag
+surface at exactly the two the design table names (`--drop-leaky`, `--flag-noise`) is worth
+more than covering every finding. (2) Rows with no label *are* a safe fix (you cannot train on
+an unlabeled row), even though it drops rows.
+
+Numbers: demo 4 992 → 4 728 rows, 11 → 10 cols on the safe fixes; auditing train alone the
+score goes **36 F → 46 D** safe-only and **36 F → 87 B** with both flags. On bank-marketing the
+output is *unchanged: 45 211 rows, 17 columns* — both findings there are judgement calls, which
+is the whole design in one transcript and now the worked example in `docs/fix.md`.
+
+**Left in Phase 6:** 6.5 (`pipeline.py` — generate the `ColumnTransformer` skeleton), 6.6
+(re-run benchmarks with `fix`, add a rows/cols-removed column), 6.7 (0.3.0 release: version
+bump, build, upload, tag; `docs/fix.md` and the README section are already written), 6.8
+(second LinkedIn post), plus 6.11 (rebuild `docs/demo.gif`).

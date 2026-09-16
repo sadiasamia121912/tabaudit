@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 
 from tabaudit.context import AuditContext
-from tabaudit.findings import Finding, Severity
+from tabaudit.findings import Finding, Fix, Severity
 
 CHECK = "schema"
 
@@ -41,7 +41,8 @@ def run(ctx: AuditContext) -> list[Finding]:
                 detail=f"{k / n:.2%} of rows have no label.",
                 recommendation="Drop unlabeled rows before training or they will crash / bias the model.",
                 columns=[ctx.target],
-                evidence={"n_missing_target": k},
+                evidence={"n_missing_target": k, "rows": df.index[df[ctx.target].isna()].tolist()},
+                fix=Fix("drop_rows", {"rows": df.index[df[ctx.target].isna()].tolist()}),
             )
         )
 
@@ -65,6 +66,7 @@ def run(ctx: AuditContext) -> list[Finding]:
                 detail=", ".join(const),
                 recommendation="Remove - a constant column carries zero information.",
                 columns=const,
+                fix=Fix("drop_columns", {"columns": const}),
             )
         )
     if near:
@@ -100,6 +102,7 @@ def run(ctx: AuditContext) -> list[Finding]:
                 detail=", ".join(numeric_as_text),
                 recommendation="Cast to numeric; as text they will be one-hot encoded or silently dropped.",
                 columns=numeric_as_text,
+                fix=Fix("coerce_dtype", {"columns": numeric_as_text, "to": "numeric"}),
             )
         )
 
@@ -114,6 +117,7 @@ def run(ctx: AuditContext) -> list[Finding]:
                 detail=", ".join(junk),
                 recommendation="Drop them (written by `to_csv` without `index=False`).",
                 columns=junk,
+                fix=Fix("drop_columns", {"columns": junk}),
             )
         )
     return findings

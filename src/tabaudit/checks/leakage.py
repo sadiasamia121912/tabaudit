@@ -27,7 +27,7 @@ from sklearn.model_selection import KFold, StratifiedKFold, cross_val_predict
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 from tabaudit.context import AuditContext
-from tabaudit.findings import Finding, Severity
+from tabaudit.findings import Finding, Fix, Severity
 
 CHECK = "leakage"
 
@@ -206,6 +206,12 @@ def run(ctx: AuditContext) -> list[Finding]:
                 "are sequential they leak collection order / time.",
                 columns=[c for c, _ in ids],
                 evidence={"unique_ratio": {c: round(u, 4) for c, u in ids}},
+                fix=Fix(
+                    "drop_columns",
+                    {"columns": [c for c, _ in ids]},
+                    safe=False,
+                    flag="--drop-leaky",
+                ),
             )
         )
     id_set = {c for c, _ in ids}
@@ -259,6 +265,7 @@ def run(ctx: AuditContext) -> list[Finding]:
                 "will look excellent and fail in production.",
                 columns=perfect,
                 evidence={c: scores[c] for c in perfect},
+                fix=Fix("drop_columns", {"columns": perfect}, safe=False, flag="--drop-leaky"),
             )
         )
     if suspicious:
@@ -273,6 +280,7 @@ def run(ctx: AuditContext) -> list[Finding]:
                 "If it is computed from, or after, the outcome, drop it.",
                 columns=suspicious,
                 evidence={c: scores[c] for c in suspicious} | {"runner_up": runner_up},
+                fix=Fix("drop_columns", {"columns": suspicious}, safe=False, flag="--drop-leaky"),
             )
         )
     if soft:
@@ -289,6 +297,7 @@ def run(ctx: AuditContext) -> list[Finding]:
                 "becomes known; if that is after the prediction moment, drop it.",
                 columns=soft,
                 evidence={c: scores[c] for c in soft} | {"runner_up": runner_up},
+                fix=Fix("drop_columns", {"columns": soft}, safe=False, flag="--drop-leaky"),
             )
         )
     if crowd:

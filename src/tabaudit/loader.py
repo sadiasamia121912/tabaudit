@@ -28,6 +28,27 @@ def load_table(path: str | Path) -> pd.DataFrame:
     raise ValueError(f"Unsupported file type '{suf}'. Supported: {sorted(SUPPORTED)}")
 
 
+def write_table(df: pd.DataFrame, path: str | Path) -> Path:
+    """Write a frame back out in the format its suffix asks for (never with an index column,
+    which is what produced half the `Unnamed: 0` findings this tool reports)."""
+    p = Path(path)
+    suf = p.suffix.lower()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    if suf == ".csv":
+        df.to_csv(p, index=False)
+    elif suf == ".tsv":
+        df.to_csv(p, sep="	", index=False)
+    elif suf in {".parquet", ".pq"}:
+        df.to_parquet(p, index=False)
+    elif suf == ".feather":
+        df.reset_index(drop=True).to_feather(p)
+    elif suf == ".json":
+        df.to_json(p, orient="records", lines=True)
+    else:
+        raise ValueError(f"Cannot write '{suf}'. Supported: {sorted(SUPPORTED)}")
+    return p
+
+
 def infer_task(y: pd.Series, max_classes: int = 20) -> str:
     """Classification if the target is categorical/boolean or a low-cardinality integer."""
     if (

@@ -25,6 +25,41 @@ class Severity(str, Enum):
         return {"critical": 30, "high": 15, "medium": 7, "low": 3, "info": 0}[self.value]
 
 
+ACTIONS = frozenset({"drop_rows", "drop_columns", "flag_rows", "coerce_dtype"})
+
+
+@dataclass
+class Fix:
+    """The one concrete edit a finding knows how to make to the dataset.
+
+    ``safe`` means there is exactly one defensible answer - dropping a constant column,
+    coercing a numeric column stored as text, removing a row with no label. Everything else
+    carries ``safe=False`` and a ``flag``: the user has to say yes, because the right answer
+    depends on knowledge the tool does not have (when a column becomes known, whether a
+    suspect row is really mislabeled). A finding with no fix is one where even asking would
+    be misleading - class imbalance is a modelling decision, not a dataset edit.
+    """
+
+    action: str  # one of ACTIONS
+    params: dict[str, Any] = field(default_factory=dict)
+    safe: bool = True
+    flag: str | None = None  # the CLI flag that enables an unsafe fix
+
+    def __post_init__(self) -> None:
+        if self.action not in ACTIONS:
+            raise ValueError(f"Unknown fix action '{self.action}'. Known: {sorted(ACTIONS)}")
+        if not self.safe and not self.flag:
+            raise ValueError("An unsafe fix must name the flag that enables it.")
+
+    @property
+    def rows(self) -> list:
+        return list(self.params.get("rows", []))
+
+    @property
+    def columns(self) -> list[str]:
+        return list(self.params.get("columns", []))
+
+
 @dataclass
 class Finding:
     check: str
@@ -34,6 +69,7 @@ class Finding:
     recommendation: str = ""
     columns: list[str] = field(default_factory=list)
     evidence: dict[str, Any] = field(default_factory=dict)
+    fix: Fix | None = None
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)

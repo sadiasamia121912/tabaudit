@@ -1,4 +1,4 @@
-"""Command-line interface: `tabaudit audit`, `tabaudit demo`, `tabaudit checks`."""
+"""Command-line interface: `tabaudit audit`, `fix`, `gate`, `demo`, `checks`."""
 
 from __future__ import annotations
 
@@ -8,13 +8,17 @@ import sys
 from pathlib import Path
 
 import typer
+from rich import box
 from rich.console import Console
 from rich.status import Status
+from rich.table import Table
 
 from tabaudit import __version__
 from tabaudit.audit import run_audit
 from tabaudit.checks import REGISTRY
 from tabaudit.findings import Severity
+from tabaudit.fix import FixPlan, apply_fixes
+from tabaudit.loader import load_table, write_table
 from tabaudit.report import render_console, render_html
 
 app = typer.Typer(
@@ -149,6 +153,131 @@ def audit(
         err.print(f"[bold red]FAIL[/bold red] {reason}")
     if reasons:
         raise typer.Exit(code=1)
+
+
+def _plan_table(plan: FixPlan) -> Table:
+    t = Table(box=box.SIMPLE, header_style="bold grey70", show_edge=False)
+    t.add_column("")
+    t.add_column("finding")
+    t.add_column("action")
+    t.add_column("result")
+    for s in plan.steps:
+        mark = "[green]✔[/green]" if s.applied else "[yellow]?[/yellow]"
+        what = f"[bold]{s.action}[/bold]"
+        if s.columns:
+            shown = ", ".join(s.columns[:4])
+            if len(s.columns) > 4:
+                shown += f" +{len(s.columns) - 4}"
+            what += f"\n[grey62]{shown}[/grey62]"
+        note = s.note if s.applied else f"[yellow]{s.note}[/yellow]"
+        t.add_row(mark, f"{s.title}\n[dim]{s.check}[/dim]", what, note)
+    return t
+
+
+@app.command()
+def fix(
+    data: Path = typer.Argument(..., help="CSV / TSV / Parquet / Feather / JSON-lines file."),
+    target: str | None = typer.Option(None, "--target", "-t", help="Label column name."),
+    test: Path | None = typer.Option(
+        None, "--test", help="Held-out set, so rows leaked into it can be dropped from train."
+    ),
+    drop_leaky: bool = typer.Option(
+        False,
+        "--drop-leaky",
+        help="Also drop the columns flagged as leaky or identifier-like. "
+        "Only you know when a column becomes available, so this is off by default.",
+    ),
+    flag_noise: bool = typer.Option(
+        False,
+        "--flag-noise",
+        help="Add a boolean `tabaudit_suspect` column marking likely-mislabeled rows. "
+        "Never relabels or drops them.",
+    ),
+    out: Path | None = typer.Option(
+        None, "--out", "-o", help="Where to write the cleaned data (default: <name>.clean.csv)."
+    ),
+    plan_out: Path | None = typer.Option(
+        None, "--plan", help="Where to write the fix plan JSON (default: <name>.fixplan.json)."
+    ),
+    checks: str | None = typer.Option(
+        None, "--checks", "-c", help="Comma-separated subset of checks (see `tabaudit checks`)."
+    ),
+    max_rows: int = typer.Option(
+        50_000, help="Row cap for model-based checks (sampled above this)."
+    ),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Only print the summary line."),
+) -> None:
+    """Audit a dataset, then apply only the fixes that have exactly one right answer.
+
+    Duplicates, constant columns, leftover index columns, numbers stored as text and rows with
+    no label are fixed outright. Suspected leaks and label errors wait for [bold]--drop-leaky[/bold]
+    / [bold]--flag-noise[/bold]; skipping them is the correct outcome, not a failure, so the
+    exit code stays 0. Scaling, encoding and imputing are never written to the file - they
+    belong in a pipeline fitted on the training fold.
+    """
+    selected = [c.strip() for c in checks.split(",")] if checks else None
+    try:
+        with Status("[cyan]auditing…", console=console, spinner="dots") as status:
+
+            def progress(name: str, state: str) -> None:
+                if state == "running":
+                    status.update(f"[cyan]running check[/cyan] [bold]{name}[/bold]…")
+
+            report = run_audit(
+                data,
+                target=target,
+                test=test,
+                checks=selected,
+                max_rows=max_rows,
+                on_progress=progress,
+            )
+        df = load_table(data)
+    except (FileNotFoundError, KeyError, ValueError) as exc:
+        err.print(f"[bold red]error:[/bold red] {exc}")
+        raise typer.Exit(code=2) from None
+
+    flags = [f for f, on in (("--drop-leaky", drop_leaky), ("--flag-noise", flag_noise)) if on]
+    clean, plan = apply_fixes(df, report, flags, target=target)
+
+    out_path = Path(out) if out else data.with_name(f"{data.stem}.clean{data.suffix or '.csv'}")
+    plan_path = Path(plan_out) if plan_out else out_path.with_name(f"{data.stem}.fixplan.json")
+    try:
+        write_table(clean, out_path)
+    except ValueError as exc:
+        err.print(f"[bold red]error:[/bold red] {exc}")
+        raise typer.Exit(code=2) from None
+    plan_path.write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
+
+    unchanged = plan.rows_after == plan.rows_before and plan.cols_after == plan.cols_before
+    if unchanged and not plan.applied:
+        shape = (
+            f"unchanged: {plan.rows_after:,} rows, {plan.cols_after} columns "
+            "— nothing here has exactly one right answer"
+        )
+    else:
+        shape = (
+            f"{plan.rows_before:,} → {plan.rows_after:,} rows, "
+            f"{plan.cols_before} → {plan.cols_after} columns"
+        )
+    if quiet:
+        console.print(
+            f"tabaudit fix: {len(plan.applied)} applied, {len(plan.skipped)} skipped; {shape}"
+        )
+    else:
+        console.print()
+        console.print(f"[bold]Health score before fixing[/bold]  {report.score}/100 {report.grade}")
+        console.print(_plan_table(plan))
+        console.print(f"[bold]{shape}[/bold]")
+        if plan.flags_offered:
+            console.print(
+                f"[yellow]{len(plan.skipped)} fix(es) need your say-so:[/yellow] "
+                f"{' '.join(plan.flags_offered)}  [dim](read the findings first: tabaudit audit)[/dim]"
+            )
+    console.print(f"[dim]cleaned data →[/dim] {out_path.resolve()}")
+    console.print(f"[dim]fix plan →[/dim] {plan_path.resolve()}")
+    if not quiet:
+        tgt = f" --target {target}" if target else ""
+        console.print(f"[dim]check it:[/dim] tabaudit audit {out_path}{tgt}")
 
 
 @app.command()

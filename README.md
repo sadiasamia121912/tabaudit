@@ -72,6 +72,10 @@ print(report.score_breakdown)              # {'schema': 90, 'duplicates': 63, 'l
 for f in report.sorted_findings():
     print(f.severity.value, f.title, f.columns)
 report.to_dict()                            # JSON-serialisable
+
+from tabaudit.fix import apply_fixes
+clean, plan = apply_fixes(df, report, ["--drop-leaky"])   # safe fixes + the ones you allow
+print(plan.applied, plan.skipped, plan.flags_offered)
 ```
 
 ## Example output
@@ -127,6 +131,39 @@ wrong on the first run and how it was fixed: [`docs/benchmarks.md`](https://gith
   ([review sheet](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/label_noise_review.md)).
 
 Reproduce with `python benchmarks/run_benchmarks.py` (~6 min, downloads ~50 MB).
+
+## Fixing what it finds
+
+`tabaudit fix` repairs the findings that have **exactly one defensible answer**, and refuses
+the rest out loud. It never touches the input: it writes `<name>.clean.csv` and
+`<name>.fixplan.json`, and exits 0 even when fixes were skipped — skipping something you did
+not authorise is correct behaviour, not a failure.
+
+```bash
+tabaudit fix train.csv --target churn --test test.csv          # safe fixes only
+tabaudit fix train.csv --target churn --drop-leaky --flag-noise  # you take the judgement calls
+```
+
+```
+ ?   1 feature(s) predict the target almost perfectly   drop_columns   needs --drop-leaky
+ ✔   1 constant column(s)                               drop_columns   dropped 1 column(s)
+ ✔   105 test rows (8.2%) also appear in the training…  drop_rows      dropped 106 row(s)
+ ✔   160 exact duplicate rows (3.2%)                    drop_rows      dropped 158 row(s)
+ ?   ~378 rows (7.6%) are likely mislabeled             flag_rows      needs --flag-noise
+4,992 → 4,728 rows, 11 → 10 columns
+3 fix(es) need your say-so: --drop-leaky --flag-noise
+```
+
+| fixed automatically | needs your say-so | never |
+|---|---|---|
+| exact duplicates · rows shared with the test set (dropped from **train**, never test) · constant columns · leftover `Unnamed: 0` columns · numbers stored as text · rows with no label | target leakage and identifier columns (`--drop-leaky`) · likely-mislabeled rows (`--flag-noise`, which *flags* them in a `tabaudit_suspect` column and never relabels or drops) | conflicting labels · mostly-missing and near-constant columns · class imbalance · **scaling, encoding, imputation** |
+
+That last cell is the important one. A scaler fitted on a whole file bakes test-set
+statistics into training data — the exact contamination this tool exists to detect — so
+transformations are never written into the data. On `bank-marketing` the honest output is that
+**nothing changes**: both findings there are judgement calls, and the tool says so rather than
+quietly deleting a column that may be a real feature. Full reasoning, both worked examples and
+the guards: [`docs/fix.md`](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/fix.md).
 
 ## Use it as a gate
 
@@ -311,6 +348,8 @@ Checks run in registry order and may communicate through `ctx.excluded_features`
 - [x] Audit results for popular public benchmark datasets — see [Results on real datasets](#results-on-real-datasets)
 - [x] `pre-commit` hook and GitHub Action — see [Use it as a gate](#use-it-as-a-gate)
 - [x] Measured detection quality by fault injection — see [How well does it detect things?](#how-well-does-it-detect-things)
+- [x] Apply the safe fixes, refuse the rest — see [Fixing what it finds](#fixing-what-it-finds)
+- [ ] Generate leak-free `scikit-learn` pipeline code from the cleaned frame
 
 ## License
 

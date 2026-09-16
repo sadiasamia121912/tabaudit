@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 
 from tabaudit.context import AuditContext
-from tabaudit.findings import Finding, Severity
+from tabaudit.findings import Finding, Fix, Severity
 
 CHECK = "duplicates"
 
@@ -40,6 +40,8 @@ def run(ctx: AuditContext) -> list[Finding]:
                     "fraction": round(frac, 4),
                     "rows": df.index[full_dup].tolist(),
                 },
+                # Dropping the later copies is what drop_duplicates() does: one right answer.
+                fix=Fix("drop_rows", {"rows": df.index[full_dup].tolist()}),
             )
         )
 
@@ -73,6 +75,9 @@ def run(ctx: AuditContext) -> list[Finding]:
             if n_leak:
                 frac = n_leak / len(ctx.test_df)
                 sev = Severity.CRITICAL if frac >= 0.01 else Severity.HIGH
+                # The fix removes the *training* rows, never the test rows: shrinking the test
+                # set would quietly change what any later score means.
+                train_rows = df.index[_row_hashes(df[common]).isin(set(test_h))].tolist()
                 findings.append(
                     Finding(
                         check=CHECK,
@@ -82,7 +87,12 @@ def run(ctx: AuditContext) -> list[Finding]:
                         "partly memorisation, not generalisation.",
                         recommendation="Remove overlapping rows from the test set, or re-split "
                         "with a group-aware splitter if rows belong to entities.",
-                        evidence={"n_overlap": n_leak, "fraction_of_test": round(frac, 4)},
+                        evidence={
+                            "n_overlap": n_leak,
+                            "fraction_of_test": round(frac, 4),
+                            "train_rows": train_rows,
+                        },
+                        fix=Fix("drop_rows", {"rows": train_rows, "side": "train"}),
                     )
                 )
     return findings

@@ -21,7 +21,7 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
 
 from tabaudit.context import AuditContext
-from tabaudit.findings import Finding, Severity
+from tabaudit.findings import Finding, Fix, Severity
 
 CHECK = "label_noise"
 TOP_N = 25
@@ -153,5 +153,14 @@ def run(ctx: AuditContext) -> list[Finding]:
                 "rows": rows_suspected,
                 "rows_likely": rows_likely,
             },
+            # Flag, never relabel or drop: half of the manually reviewed suspects were
+            # ambiguous rather than wrong (docs/label_noise_review.md). Only the "likely"
+            # tier is flagged - the looser tier is for reading, not for acting on.
+            fix=Fix(
+                "flag_rows",
+                {"rows": rows_likely, "column": "tabaudit_suspect"},
+                safe=False,
+                flag="--flag-noise",
+            ),
         )
     ]

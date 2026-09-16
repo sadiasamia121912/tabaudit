@@ -13,6 +13,20 @@ All notable changes to tabaudit. Versions follow [Semantic Versioning](https://s
   runs only when something was flagged, so a clean dataset pays no runtime for it (`adult`:
   0.00 s). Where it does run it fits two models: 1.1 s on titanic, 13.6 s on bank-marketing's
   45 k rows, and it obeys `--max-rows`.
+- **`tabaudit fix`** — applies the fixes that have exactly one defensible answer (exact
+  duplicates; rows shared with the test set, dropped from *train* only; constant and leftover
+  `Unnamed:` columns; numbers stored as text; rows with no label) and reports every other one
+  as skipped. Target leakage and identifier columns need `--drop-leaky`; likely-mislabeled rows
+  need `--flag-noise`, which adds a boolean `tabaudit_suspect` column and never relabels or
+  drops. Scaling, encoding and imputation are never written to a file — that is how test
+  statistics leak into training data. Writes `<name>.clean.csv` + `<name>.fixplan.json`, leaves
+  the input untouched, and exits 0 with fixes outstanding. On `bank-marketing` the correct
+  output is that nothing changes; see [`docs/fix.md`](docs/fix.md).
+- **`Fix` on every finding that has one** — `action` / `params` / `safe` / `flag`, serialised
+  with the finding, plus `tabaudit.fix.apply_fixes(df, report, flags)` and a `FixPlan` that
+  records what was applied, what was skipped and why.
+- `tabaudit.loader.write_table` — writes CSV / TSV / Parquet / Feather / JSON-lines back out,
+  never with an index column.
 - **Per-check score breakdown** — `AuditReport.score_breakdown` (also in the JSON report,
   as "by check" bars in the terminal report and in the HTML health card): the same 0–100
   scale per check, so it is visible where the points went. A breakdown, not an average.
