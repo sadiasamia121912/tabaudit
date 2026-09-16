@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from tabaudit import Severity, run_audit
-from tabaudit.checks import duplicates, imbalance, label_noise, leakage, schema
+from tabaudit.checks import duplicates, imbalance, impact, label_noise, leakage, schema
 from tabaudit.context import AuditContext
 from tabaudit.loader import infer_task
 
@@ -286,3 +286,85 @@ def test_demo_dataset_fails_hard():
     crit = [f for f in report.findings if f.severity == Severity.CRITICAL]
     assert any("churn_reason" in f.columns for f in crit)  # the planted leak
     assert any(f.check == "label_noise" for f in report.findings)
+
+
+# ---------------------------------------------------------------- impact ----
+def leaked_frame(n: int = 600) -> pd.DataFrame:
+    df = base_frame(n)
+    df["outcome_code"] = np.where(df["y"] == 1, "won", "lost")  # derived from the target
+    return df
+
+
+def test_impact_prices_the_flagged_columns():
+    ctx = ctx_for(leaked_frame())
+    leakage.run(ctx)  # this is what fills ctx.excluded_features
+    f = impact.run(ctx)
+    assert len(f) == 1
+    assert f[0].severity == Severity.INFO  # evidence, not a second accusation
+    assert "outcome_code" in f[0].columns
+    ev = f[0].evidence
+    assert ev["metric"] == "AUC"
+    assert ev["with_flagged"] > ev["without_flagged"] + 0.05
+    assert ev["delta"] == pytest.approx(ev["with_flagged"] - ev["without_flagged"], abs=1e-3)
+
+
+def even_frame(n: int = 400) -> pd.DataFrame:
+    """Two features of equal strength, so no single one stands apart and nothing is flagged."""
+    x1, x2 = RNG.normal(size=n), RNG.normal(size=n)
+    y = (x1 + x2 + RNG.normal(scale=0.8, size=n) > 0).astype(int)
+    return pd.DataFrame({"x1": x1, "x2": x2, "y": y})
+
+
+def test_impact_is_quiet_with_nothing_to_price():
+    even = ctx_for(even_frame())
+    leakage.run(even)
+    assert not even.excluded_features  # precondition: the leakage check flagged nothing
+    assert impact.run(even) == []
+    # and it prices only what an earlier check flagged - alone it has no opinion
+    assert impact.run(ctx_for(leaked_frame(300))) == []
+
+
+def test_impact_prices_an_honest_dominant_feature_too():
+    """The gap is the size of the bet, not proof of a leak: base_frame's x1 is legitimate
+    (y is built from it) and gets priced exactly like a leak would be."""
+    ctx = ctx_for(base_frame(300))
+    leakage.run(ctx)
+    assert "x1" in ctx.excluded_features  # MEDIUM "soft leak" - correct, given the gap
+    f = impact.run(ctx)
+    assert f and f[0].evidence["delta"] > 0
+    assert "not proof of leakage" in f[0].recommendation
+
+
+def test_impact_regression_reports_r2():
+    n = 500
+    x1, x2 = RNG.normal(size=n), RNG.normal(size=n)
+    y = 3 * x1 + x2 + RNG.normal(scale=0.5, size=n)
+    df = pd.DataFrame({"x1": x1, "x2": x2, "copy_of_y": y + RNG.normal(scale=0.01, size=n), "y": y})
+    ctx = ctx_for(df)
+    leakage.run(ctx)
+    f = impact.run(ctx)
+    assert f and f[0].evidence["metric"] == "R2"
+    assert f[0].evidence["with_flagged"] > f[0].evidence["without_flagged"]
+
+
+def test_impact_never_moves_the_score():
+    """The published benchmark scores must not shift because this check was added."""
+    df = leaked_frame(400)
+    with_impact = run_audit(df, target="y", checks=["leakage", "impact"])
+    without = run_audit(df, target="y", checks=["leakage"])
+    assert with_impact.score == without.score
+    assert any(f.check == "impact" for f in with_impact.findings)
+
+
+# ------------------------------------------------------- score breakdown ----
+def test_score_breakdown_is_per_check_and_serialised():
+    df = base_frame(300)
+    df = pd.concat([df, df.head(30)], ignore_index=True)  # 30 exact duplicate rows
+    report = run_audit(df, target="y", checks=["schema", "duplicates", "imbalance"])
+    bd = report.score_breakdown
+    assert list(bd) == ["schema", "duplicates", "imbalance"]  # registry order
+    assert bd["duplicates"] < 100
+    assert bd["schema"] == 100 and bd["imbalance"] == 100
+    # the overall score is 100 minus every penalty, not the mean of the parts
+    assert report.score == 100 - sum(100 - v for v in bd.values())
+    assert report.to_dict()["score_breakdown"] == bd

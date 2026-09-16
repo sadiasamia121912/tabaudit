@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from tabaudit.checks import duplicates, imbalance, label_noise, leakage, schema
+from tabaudit.checks import duplicates, imbalance, impact, label_noise, leakage, schema
 from tabaudit.context import AuditContext
 from tabaudit.findings import Finding
 
@@ -16,6 +16,8 @@ REGISTRY: dict[str, CheckFn] = {
     "duplicates": duplicates.run,
     "imbalance": imbalance.run,
     "leakage": leakage.run,
+    # `impact` prices what `leakage` flagged, so it must see ctx.excluded_features already set.
+    "impact": impact.run,
     "label_noise": label_noise.run,
 }
 

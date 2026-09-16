@@ -32,6 +32,7 @@ hard part is *noticing* them. `tabaudit` makes the check automatic, fast, and re
 | `label_noise` | probably-mislabeled rows from an out-of-fold model's self-confidence, thresholds calibrated by fault injection, ranked and tiered | HIGH → INFO |
 | `imbalance`   | class ratio, classes with < 10 examples                                                                   | HIGH → LOW |
 | `schema`      | ≥ 50 % missing columns, missing labels, constant / near-constant columns, numbers stored as text, leftover index columns | HIGH → INFO |
+| `impact`      | how much of the apparent performance rests on the flagged columns: held-out AUC/R² with them and without | INFO (evidence, not a defect) |
 
 Every finding carries a plain-English explanation of *why it matters* and *what to do*.
 Findings are weighted into a 0–100 score and an A–F grade.
@@ -67,6 +68,7 @@ from tabaudit import run_audit
 
 report = run_audit("train.csv", target="churn", test="test.csv")
 print(report.score, report.grade)          # 6 'F'
+print(report.score_breakdown)              # {'schema': 90, 'duplicates': 63, 'leakage': 63, ...}
 for f in report.sorted_findings():
     print(f.severity.value, f.title, f.columns)
 report.to_dict()                            # JSON-serialisable
@@ -196,6 +198,7 @@ needs only pandas.
 | label noise (per-row suspects) | ✅ out-of-fold self-confidence | ❌ | ❌ | ✅ confident learning, you supply the probabilities | ❌ |
 | schema: missing / constant / numeric-as-text | ✅ | ✅ | ✅ | ⚠️ nulls only | ⚠️ train/test dtype mismatch only |
 | temporal / preprocessing / cross-dataset leakage | ❌ (Phase 7) | ❌ | ⚠️ date + index leakage | ❌ | ✅ you name the time columns / pass workflow metadata |
+| what a flagged column is *worth* (held-out score with vs without) | ✅ `impact` | ❌ | ❌ | ❌ | ❌ |
 | drift, outliers, model evaluation | ❌ | ❌ | ✅ | ✅ outliers | ❌ |
 | one overall score | ✅ 0–100 + grade | ❌ | ❌ per-check pass/fail | ❌ per-issue-type scores | ✅ 0–1 risk score + level |
 | CI gate out of the box | ✅ `--fail-on` / `--fail-under`, Action, pre-commit | ❌ | ⚠️ via conditions + your code | ❌ | ❌ exits 0 even on a CRITICAL finding |
@@ -243,6 +246,18 @@ it scores ≥ 0.90, MEDIUM "soft leak" if ≥ 0.75). Several strong features bun
 mean the task is easy, not leaky — that case is reported at INFO. Missing values are
 encoded so the tree can split on *missingness itself*, which catches the common "this field
 is only filled in for positives" leak.
+
+**Impact.** Naming a leak is cheap; knowing what it is worth is not. Whenever the leakage
+check flags anything, the `impact` check fits two cross-validated models — all features, then
+the same rows and folds without the flagged columns — and reports both held-out scores. On
+titanic that is **AUC 0.991 with `boat` and `name`, 0.875 without**: 0.116 of the apparent
+performance rests on two columns. Read it as the size of the bet rather than as proof, because
+a legitimately strong feature moves the number identically; what it gives you is the honest
+expectation if those columns turn out to be unavailable at prediction time. The finding is
+always INFO, so pricing a defect never scores it twice, and a dataset with nothing flagged
+pays no runtime for the check at all. On bank-marketing it prices the documented `duration`
+soft leak at 0.133 AUC (0.933 → 0.800) for 13.6 s of extra work on 45 k rows; `--max-rows`
+shortens that.
 
 **Label noise.** An out-of-fold gradient-boosting model produces class probabilities for
 every row; a row is a suspect when the model gives its *given* label little probability.

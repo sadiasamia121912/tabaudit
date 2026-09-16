@@ -81,6 +81,22 @@ class AuditReport:
         return max(0, 100 - penalty)
 
     @property
+    def score_breakdown(self) -> dict[str, int]:
+        """The same 0-100 scale, per check: what each one cost, in registry order.
+
+        A check that ran and found nothing scores 100. The overall score is *not* the mean
+        of these - it is 100 minus every penalty, so one bad check can sink it on its own.
+        Checks that errored or were not selected are absent.
+        """
+        out: dict[str, int] = {}
+        for run in self.checks:
+            if run.status != "ok":
+                continue
+            penalty = sum(f.severity.penalty for f in self.findings if f.check == run.name)
+            out[run.name] = max(0, 100 - penalty)
+        return out
+
+    @property
     def grade(self) -> str:
         s = self.score
         if s >= 90:
@@ -116,6 +132,7 @@ class AuditReport:
             "score": self.score,
             "grade": self.grade,
             "verdict": self.verdict,
+            "score_breakdown": self.score_breakdown,
             "summary": asdict(self.summary),
             "checks": [asdict(c) for c in self.checks],
             "findings": [f.to_dict() for f in self.sorted_findings()],

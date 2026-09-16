@@ -47,6 +47,11 @@ The penalties were chosen so that the grade matches what a careful reviewer woul
   known warts (spambase, creditcard).
 - **Only LOWs and INFOs → A.** Nothing that changes a conclusion.
 
+The report also shows the same 0–100 scale **per check** (`report.score_breakdown`, and the
+"by check" bars in the terminal and HTML reports): 100 minus what that one check's findings
+cost. It is a breakdown of where the points went, not an average — the overall score is 100
+minus *every* penalty, so one bad check can sink it while the other five read 100.
+
 Penalties add up rather than taking the maximum so that "many medium problems" is
 distinguishable from "one medium problem". The demo dataset (2 CRITICAL, 4 MEDIUM, 2 LOW)
 scores 6 — deliberately, so the demo shows what an F looks like.
@@ -290,3 +295,56 @@ none obviously fine.
 label near the decision boundary looks like a correct one); regression targets (no
 noise check yet — residual-based detection is on the roadmap); and anything when a class
 has fewer than 5 examples, since 5-fold stratified CV is impossible.
+
+---
+
+## 6. impact
+
+Prices what `leakage` flagged, instead of only naming it. Two cross-validated models of the
+same kind — the regularised `HistGradientBoosting` that `label_noise` uses, so the two
+numbers are comparable — on the same rows and the same folds: one on every feature, one with
+the flagged columns (leaky *and* identifier-like) removed. The finding reports both held-out
+scores and the gap between them: AUC for classification, R² for regression.
+
+It runs only when `leakage` actually flagged something, so a clean dataset pays nothing
+(`adult`: nothing flagged → 0.00 s, no finding). When it does run it fits two models, which
+makes it the most expensive check on a large dataset: 1.1 s on titanic (1 309 rows), 1.4 s on
+the 5 k-row demo, but **13.6 s on bank-marketing** (45 211 rows) — roughly double what
+`label_noise` costs, since that check fits one model and this one fits two. It obeys
+`--max-rows` like every other model-based check, so lower that if the wait matters.
+
+| dataset | flagged columns | with | without | gap |
+|---|---|:-:|:-:|:-:|
+| titanic | `boat`, `name` | 0.991 | 0.875 | **0.116** |
+| bank-marketing | `V12` (= `duration`) | 0.933 | 0.800 | **0.133** |
+| demo (planted leak) | `churn_reason`, `customer_id` | 1.000 | 0.761 | **0.239** |
+
+The middle row is the useful one to argue with: `duration` is a documented soft leak (the
+length of the call that sold the product), and it is worth 0.133 AUC. Every published result
+on that dataset that kept the column is 0.13 better than it would be in a world where you
+have to predict *before* making the call.
+
+**Severity is always INFO, penalty 0.** The defect has already been scored by the check that
+flagged the column; scoring it again would count the same problem twice. This check only puts
+a price on it — which is why adding it changed no benchmark score.
+
+**How to read the number.** As the size of the bet, not as proof of a leak. A legitimately
+strong feature produces exactly the same gap: drop `x1` from a dataset whose label was built
+from `x1` and the AUC falls just as far. What the gap tells you is what the reported score
+becomes *if* the flagged columns turn out to be unavailable at prediction time — i.e. how
+much you lose by being careful, and how much you lose by being wrong. A gap of 0.12 on
+titanic means the honest expectation for that dataset is 0.875, not 0.99; whether 0.99 was a
+lie depends on when `boat` is known, which only a human can answer.
+
+Three cases are worded differently on purpose: a gap ≥ 0.005 ("this much rests on them"), a
+gap ≤ −0.005 (removing them *raised* the score — they were costing more in noise than they
+added), and anything in between ("dropping them changes nothing, so the safe choice is
+free"). The ±0.005 dead zone is there because cross-validation noise alone moves the third
+decimal.
+
+**What it misses.** It prices the flagged columns *as a group*: with two flagged columns you
+cannot tell from the gap which one carries it (that would need one model per column). The
+"without" number is measured on the same rows as everything else, so if the dataset also has
+duplicates or train/test contamination, both numbers are inflated and only their difference
+is meaningful. And it is one model family's opinion — a linear model may value the same
+column quite differently.

@@ -203,6 +203,10 @@ time (see `docs/label_noise_review.md`: 5 of 10 suspects were ambiguous) and wro
 - [ ] **6.7** `docs/fix.md`: the table above + one worked example (bank-marketing `duration`). README section "Fixing what it finds". Bump to 0.3.0, `python -m build`, `twine upload`, tag, release.
 - [ ] **6.8** Second LinkedIn post: *"v0.3: tabaudit now fixes what it finds — and why it refuses to fix some things"*.
 
+- [x] **6.9** _(done 2026-09-16)_ **`impact` check — what the flagged columns are worth.** Two cross-validated models on the same rows and folds (`X_encoded` vs `X_encoded_clean`, the regularised GBM `label_noise` already uses): held-out AUC/R² with the leaky + identifier columns and without, reported as both scores plus the gap. Severity **INFO / penalty 0** on purpose — the defect is already scored by the check that flagged it, so no benchmark score moved. Runs only when something was flagged (`adult`: 0.00 s, no finding); 1.1 s on titanic, 13.6 s on bank-marketing's 45 k rows (two model fits, obeys `--max-rows`). Real results: **titanic 0.991 → 0.875 (gap 0.116, `boat` + `name`)**, bank-marketing 0.933 → 0.800 (gap 0.133, the documented `duration` leak), demo 1.000 → 0.761 (gap 0.239). Score invariance verified on real data too: titanic still 64 C, bank-marketing still 83 B, exactly as in `docs/benchmarks.md`. 6 new tests, incl. one that locks the score-invariance and one that documents the honest caveat (an *honest* dominant feature is priced identically — the gap is the size of the bet, not proof).
+- [x] **6.10** _(done 2026-09-16)_ **Per-check score breakdown.** `AuditReport.score_breakdown` (registry order, `status == "ok"` only), in `to_dict()`, as "by check" bars in the terminal verdict panel (worst first) and in the HTML health card + a `score` column in the checks table. Display only — no weights re-derived, so the score is unchanged; documented in `docs/checks.md` as a breakdown, *not* an average.
+- [ ] **6.11** Rebuild `docs/demo.gif` before the 0.3.0 release — the verdict panel now carries the per-check bars, so the recorded GIF is out of date (`powershell docs/make_demo_gif.ps1`).
+
 **Done when:** `tabaudit fix` on `tabaudit demo` data drops the duplicates and constant column, leaves the leaky column in place with a clear message, and the generated pipeline file runs end-to-end on the clean CSV.
 
 ## Phase 7 — Stretch (only if Phase 6 is finished)
@@ -211,6 +215,16 @@ time (see `docs/label_noise_review.md`: 5 of 10 suspects were ambiguous) and wro
 - [ ] Near-duplicate detection (numeric tolerance / fuzzy text)
 - [ ] Label-noise for regression targets (residual-based)
 - [ ] `pre-commit` hook / reusable GitHub Action
+- [ ] Score validation study (from `../update.md`): inject faults at increasing severity and
+  check whether the health score predicts the gap between a model's *reported* and its true
+  held-out performance. The one genuinely research-shaped idea in that document, and it reuses
+  `benchmarks/evaluate.py` wholesale. After Project 2, not before — it is 2–3 days.
+- **Declined, on the record:** drift / outlier / model-evaluation checks (`../update.md` idea 6).
+  That is deepchecks' and Evidently's ground, and the README's "How it compares" now states the
+  narrow scope as a position rather than a gap. Adding them makes tabaudit a worse deepchecks.
+  Also declined: task-aware check selection (idea 5 — the task is already inferred, the rest is
+  advice text) and per-column counterfactual datasets (idea 4 — 80 % of it is 6.9 at several
+  times the cost).
 
 ## Then → Project 2 (LLM → tiny model distillation)
 
@@ -370,3 +384,13 @@ is a column-name regex + `|r| >= 0.90`, so nothing model-based. It *does* catch 
 copy (CRITICAL) and train/test row overlap (HIGH), but exits 0 regardless, so it can't gate CI.
 Where it genuinely leads: **temporal, preprocessing (fit-before-split) and cross-dataset
 leakage** — which is Phase 7 here, now with a competitor's taxonomy to aim at.
+
+**2026-09-16 (6.9 + 6.10)** — Reviewed `../update.md` (an outside suggestion list) against the
+repo and took the two items that survive contact with the plan: **6.9 `impact`** and **6.10
+score breakdown**, both shipped and pushed. The rest is recorded above: idea 2 was already
+Phase 6.5, its "rigorous evaluation" advice was already `docs/evaluation.md`, and ideas 4–6 are
+declined with reasons. The framework reframe in that document is a thesis, not a 1–2-week
+portfolio project, and adopting it would cost Projects 2 and 3. 57 tests pass, ruff clean.
+`impact` also gave the README a row no competitor can tick. **Left: 2.5 (repo public), 3.5
+(LinkedIn post), 6.11 (rebuild the GIF before 0.3.0), then the rest of Phase 6 (`fix`).**
+

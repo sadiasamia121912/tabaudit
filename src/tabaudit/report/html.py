@@ -25,6 +25,7 @@ def render_html(report: AuditReport, out_path: str | Path) -> Path:
         score=report.score,
         grade=report.grade,
         verdict=report.verdict,
+        score_breakdown=report.score_breakdown,
         grade_color=_GRADE_COLOR[report.grade],
         counts=[(s.value, report.count(s)) for s in Severity],
         generated_at=report.generated_at,

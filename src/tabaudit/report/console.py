@@ -54,6 +54,18 @@ def _summary_table(report: AuditReport) -> Table:
     return t
 
 
+def _breakdown_table(report: AuditReport) -> Table:
+    """The same 0-100 scale per check, worst first, so it is obvious where the points went."""
+    t = Table.grid(padding=(0, 2))
+    t.add_column(style="grey70")
+    t.add_column()
+    t.add_column(justify="right")
+    for name, sc in sorted(report.score_breakdown.items(), key=lambda kv: kv[1]):
+        style = "grey50" if sc == 100 else "yellow" if sc >= 75 else "red"
+        t.add_row(name, _score_bar(sc, width=16), Text(str(sc), style=f"bold {style}"))
+    return t
+
+
 def _score_panel(report: AuditReport) -> Panel:
     color = GRADE_COLOR[report.grade]
     grade = Text(f" {report.grade} ", style=f"bold white on {color}")
@@ -68,8 +80,11 @@ def _score_panel(report: AuditReport) -> Panel:
         if n:
             counts.append_text(_badge(sev))
             counts.append(f" {n}   ")
+    parts = [line1, line2, Text(), line3, Text(), counts]
+    if len(report.score_breakdown) > 1:
+        parts += [Text(), Text("by check", style="grey50"), _breakdown_table(report)]
     return Panel(
-        Group(line1, line2, Text(), line3, Text(), counts),
+        Group(*parts),
         title="[bold]Verdict[/bold]",
         border_style=color,
         padding=(1, 2),

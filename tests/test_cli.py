@@ -112,5 +112,5 @@ def test_missing_file_is_a_clean_error():
 def test_checks_command_lists_all():
     res = runner.invoke(app, ["checks"])
     assert res.exit_code == 0
-    for name in ("schema", "duplicates", "imbalance", "leakage", "label_noise"):
+    for name in ("schema", "duplicates", "imbalance", "leakage", "impact", "label_noise"):
         assert name in res.output

@@ -2,6 +2,21 @@
 
 All notable changes to tabaudit. Versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+- **`impact` check** — prices what `leakage` flagged instead of only naming it: two
+  cross-validated models on the same rows and folds, one with every feature and one without
+  the flagged columns, reported as both held-out scores and the gap (AUC, or R² for
+  regression). titanic: **AUC 0.991 with `boat` + `name`, 0.875 without**. Always INFO
+  (penalty 0), so pricing a defect never scores it twice and no benchmark score moved; it
+  runs only when something was flagged, so a clean dataset pays no runtime for it (`adult`:
+  0.00 s). Where it does run it fits two models: 1.1 s on titanic, 13.6 s on bank-marketing's
+  45 k rows, and it obeys `--max-rows`.
+- **Per-check score breakdown** — `AuditReport.score_breakdown` (also in the JSON report,
+  as "by check" bars in the terminal report and in the HTML health card): the same 0–100
+  scale per check, so it is visible where the points went. A breakdown, not an average.
+
 ## 0.2.0 — 2026-09-15
 
 The evaluation release: tabaudit now measures itself, and two things it found were fixed.
