@@ -18,7 +18,7 @@ _Last updated: 2026-09-17. Companion to `../AI_ML_Portfolio_Projects.md` (the 3-
 
 **How to get running again (every session):**
 ```powershell
-cd C:\Users\User\dev\tabaudit
+cd C:\Users\User\dev\tabaudit\tabaudit
 .\.venv\Scripts\activate
 pytest -q                      # should say "29 passed"
 tabaudit demo                  # see every check fire on synthetic data
@@ -247,7 +247,7 @@ Phases 5–6 are optional — decide after Phase 4 whether they or Project 2 are
 **2026-09-13** — Phase 1 tasks 1.1–1.4 done, pushed (`f7b68aa`). `.venv` and dataset cache
 deleted to free space. **To resume:**
 ```powershell
-cd C:\Users\User\dev\tabaudit
+cd C:\Users\User\dev\tabaudit\tabaudit
 python -m venv .venv
 .\.venv\Scripts\activate
 pip install -e ".[dev]"
@@ -267,7 +267,7 @@ started: `dist/` builds clean (`twine check` PASSED), wheel verified in a fresh 
 `.pypirc` created. `twine upload --repository testpypi dist/*` returned **403 Forbidden** —
 not retried. **To resume:**
 ```powershell
-cd C:\Users\User\dev\tabaudit
+cd C:\Users\User\dev\tabaudit\tabaudit
 .\.venv\Scripts\activate          # if .venv was deleted: python -m venv .venv; pip install -e ".[dev]"
 pytest -q                          # expect 29 passed
 ```
