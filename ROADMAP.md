@@ -1,6 +1,6 @@
 # tabaudit — Roadmap
 
-_Last updated: 2026-09-15. Companion to `../AI_ML_Portfolio_Projects.md` (the 3-project plan)._
+_Last updated: 2026-09-17. Companion to `../AI_ML_Portfolio_Projects.md` (the 3-project plan)._
 
 ## Where things stand
 
@@ -10,10 +10,10 @@ _Last updated: 2026-09-15. Companion to `../AI_ML_Portfolio_Projects.md` (the 3-
 | Tests (`pytest`) | ✅ 29 passing |
 | Lint (`ruff`) | ✅ clean |
 | GitHub Actions CI (Linux/Windows × Py 3.10/3.12/3.13) | ✅ configured |
-| Pushed to GitHub (`sadiasamia121912/tabaudit`, **private**) | ✅ |
+| Pushed to GitHub (`sadiasamia121912/tabaudit`) | ✅ |
 | Benchmarks on real datasets | ✅ 10 datasets in `docs/benchmarks.md`, gap-based leakage fix verified on them |
 | README benchmark table + GIF | ✅ |
-| Public repo | ❌ your click: Settings → Danger zone → Change visibility |
+| Public repo | ✅ 2026-09-17 |
 | PyPI release (`pip install tabaudit`) | ✅ **0.3.0 live 2026-09-16** (0.2.0 on 09-15, 0.1.0 on 09-14), verified in a fresh venv |
 
 **How to get running again (every session):**
@@ -54,15 +54,15 @@ that goes on the résumé.
 
 **Done when:** `docs/benchmarks.md` has ≥ 8 datasets and you can say "found X in N of 8". _(Currently: real CRITICAL/HIGH findings in 4 of 10, at least one MEDIUM in 10 of 10.)_
 
-## Phase 2 — Polish  (1 day)  ✅ except 2.5
+## Phase 2 — Polish  (1 day)  ✅
 
 - [x] **2.1** README: paste the benchmark table under a new "Results on real datasets" section _(2026-09-14)_
 - [x] **2.2** Record a ~20 s terminal GIF of `tabaudit demo` → `docs/demo.gif`, embed in README _(2026-09-14; rebuild with `powershell docs/make_demo_gif.ps1`)_
 - [x] **2.3** `docs/checks.md`: how each check works, every threshold and why, what each misses; plus how the score is computed _(2026-09-14)_
 - [x] **2.4** Tick the "Audit results for popular public benchmark datasets" box in the README roadmap _(2026-09-14)_
-- [ ] **2.5** Make the repo **public** — _your click, when you have read `docs/checks.md` and `docs/label_noise_review.md`_ (GitHub → Settings → Danger zone → Change visibility)
+- [x] **2.5** _(done 2026-09-17)_ Make the repo **public**
 
-## Phase 3 — Publish  (½ day)  ← 3.5 + 2.5 still open (your clicks)
+## Phase 3 — Publish  (½ day)  ← 3.5 still open (LinkedIn post)
 
 - [x] **3.1** Create a PyPI account + API token (https://pypi.org) _(done 2026-09-14; tokens live in `C:\Users\User\.pypirc`)_
 - [x] **3.2** ~~Dry run on TestPyPI~~ _skipped: `twine check` + fresh-venv install of the local wheel covered it; TestPyPI needs a separate account and wasn't worth the friction_
