@@ -17,12 +17,18 @@ foreach ($dir in (Get-ChildItem $pk -Directory -ErrorAction SilentlyContinue)) {
     Get-ChildItem $dir.FullName -Recurse -Include vhs.exe, ttyd.exe, ffmpeg.exe -ErrorAction SilentlyContinue |
         ForEach-Object { $env:PATH = $_.DirectoryName + ";" + $env:PATH }
 }
+# The recorded shell inherits this environment; NO_COLOR (set by some editors / agent
+# harnesses) would make Rich render the whole demo in monochrome.
+Remove-Item Env:NO_COLOR -ErrorAction SilentlyContinue
+
 foreach ($tool in "vhs", "ttyd", "ffmpeg") {
     if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { throw "$tool not found on PATH" }
 }
 
-if (Test-Path $work) { Remove-Item -Recurse -Force $work }
+# Clear the contents rather than the folder: a shell whose cwd is $work (a previous run's
+# terminal, say) keeps the folder itself locked, but its contents can still go.
 New-Item -ItemType Directory -Force $work | Out-Null
+Get-ChildItem $work -Force | Remove-Item -Recurse -Force
 Set-Location $work
 vhs (Join-Path $repo "docs\demo.tape")
 if (-not (Test-Path $frames)) { throw "vhs produced no frames" }

@@ -205,7 +205,7 @@ time (see `docs/label_noise_review.md`: 5 of 10 suspects were ambiguous) and wro
 
 - [x] **6.9** _(done 2026-09-16)_ **`impact` check — what the flagged columns are worth.** Two cross-validated models on the same rows and folds (`X_encoded` vs `X_encoded_clean`, the regularised GBM `label_noise` already uses): held-out AUC/R² with the leaky + identifier columns and without, reported as both scores plus the gap. Severity **INFO / penalty 0** on purpose — the defect is already scored by the check that flagged it, so no benchmark score moved. Runs only when something was flagged (`adult`: 0.00 s, no finding); 1.1 s on titanic, 13.6 s on bank-marketing's 45 k rows (two model fits, obeys `--max-rows`). Real results: **titanic 0.991 → 0.875 (gap 0.116, `boat` + `name`)**, bank-marketing 0.933 → 0.800 (gap 0.133, the documented `duration` leak), demo 1.000 → 0.761 (gap 0.239). Score invariance verified on real data too: titanic still 64 C, bank-marketing still 83 B, exactly as in `docs/benchmarks.md`. 6 new tests, incl. one that locks the score-invariance and one that documents the honest caveat (an *honest* dominant feature is priced identically — the gap is the size of the bet, not proof).
 - [x] **6.10** _(done 2026-09-16)_ **Per-check score breakdown.** `AuditReport.score_breakdown` (registry order, `status == "ok"` only), in `to_dict()`, as "by check" bars in the terminal verdict panel (worst first) and in the HTML health card + a `score` column in the checks table. Display only — no weights re-derived, so the score is unchanged; documented in `docs/checks.md` as a breakdown, *not* an average.
-- [ ] **6.11** Rebuild `docs/demo.gif` before the 0.3.0 release — the verdict panel now carries the per-check bars, so the recorded GIF is out of date (`powershell docs/make_demo_gif.ps1`).
+- [x] **6.11** _(done 2026-09-17)_ Rebuild `docs/demo.gif` before the 0.3.0 release — the verdict panel now carries the per-check bars, so the recorded GIF is out of date (`powershell docs/make_demo_gif.ps1`).
 
 **Done when:** `tabaudit fix` on `tabaudit demo` data drops the duplicates and constant column, leaves the leaky column in place with a clear message, and the generated pipeline file runs end-to-end on the clean CSV.
 
@@ -467,3 +467,14 @@ LinkedIn posts). Note that until the repo is public, the README images on the Py
 (`raw.githubusercontent.com/.../docs/demo.gif`) cannot load for anonymous visitors — that has
 been true since 0.1.0 and going public fixes it. Then: Project 2 (LLM → tiny model
 distillation).
+
+**2026-09-17 (6.11: demo GIF rebuilt)** — `docs/demo.gif` now shows 0.3.0: the per-check bars,
+the INFO badge and the `impact` finding count. Three things had to change to get there, all in
+the tape/script rather than the tool: (1) `tabaudit demo` takes ~35 s now (the `impact` check
+fits two more models) and the tape only waited 14 s, so the first render was a blank prompt —
+the tape now waits 45 s with the recorder hidden; (2) the recording shell inherited `NO_COLOR=1`
+from the agent harness and Rich rendered everything monochrome — the script clears it;
+(3) the script deleted and recreated its temp folder, which fails when any shell is sitting in
+it — it now clears the contents instead. The 46-line cut and the "N more findings" trailer were
+also updated for the 9-finding output. Left on the project: **2.5** (public repo), **3.5 / 6.8**
+(LinkedIn posts). Then Project 2.

@@ -22,7 +22,7 @@ Set TypingSpeed 70ms
 Hide
 Type 'cd C:\Users\User\dev\tabaudit' Enter
 Type '$env:PATH = "$PWD\.venv\Scripts;" + $env:PATH; $env:PYTHONIOENCODING = "utf-8"; [Console]::OutputEncoding = [Text.Encoding]::UTF8' Enter
-Type 'function tabaudit { python -c "import rich.console as rc; _C = rc.Console; rc.Console = lambda *a, **k: _C(*a, force_terminal=True, force_interactive=False, legacy_windows=False, width=100, **k); from tabaudit.cli import app; app()" @args | Select-Object -First 44; Write-Host "  ... 5 more findings (MEDIUM x3, LOW x2) - full output in the HTML report" -ForegroundColor DarkGray }' Enter
+Type 'function tabaudit { python -c "import rich.console as rc; _C = rc.Console; rc.Console = lambda *a, **k: _C(*a, force_terminal=True, force_interactive=False, legacy_windows=False, width=100, **k); from tabaudit.cli import app; app()" @args | Select-Object -First 46; Write-Host "  ... 7 more findings (MEDIUM x4, LOW x2, INFO x1) - full output in the HTML report" -ForegroundColor DarkGray }' Enter
 Type 'function prompt { "$ " }' Enter
 Type 'cls' Enter
 Sleep 500ms
@@ -32,4 +32,10 @@ Sleep 1s
 Type "tabaudit demo"
 Sleep 700ms
 Enter
-Sleep 14s
+# The run takes ~35 s on this machine (the impact check fits two extra models) and the
+# pipe holds Python's output until it exits, so skip the dead time instead of recording it.
+Sleep 1s
+Hide
+Sleep 45s
+Show
+Sleep 6s
