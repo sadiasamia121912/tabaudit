@@ -14,7 +14,7 @@ _Last updated: 2026-09-17. Companion to `../AI_ML_Portfolio_Projects.md` (the 3-
 | Benchmarks on real datasets | ✅ 10 datasets in `docs/benchmarks.md`, gap-based leakage fix verified on them |
 | README benchmark table + GIF | ✅ |
 | Public repo | ✅ 2026-09-17 |
-| PyPI release (`pip install tabaudit`) | ✅ **0.3.0 live 2026-09-16** (0.2.0 on 09-15, 0.1.0 on 09-14), verified in a fresh venv |
+| PyPI release (`pip install tabaudit`) | ✅ **0.3.1 live 2026-09-25** (0.3.0 on 09-16, 0.2.0 on 09-15, 0.1.0 on 09-14), verified in a fresh venv |
 
 **How to get running again (every session):**
 ```powershell
