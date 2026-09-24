@@ -296,6 +296,19 @@ label near the decision boundary looks like a correct one); regression targets (
 noise check yet — residual-based detection is on the roadmap); and anything when a class
 has fewer than 5 examples, since 5-fold stratified CV is impossible.
 
+**Where the row list is not reliable: many classes, few rows each, dense features.** The
+thresholds above were calibrated on datasets with a handful of classes. Measured on the
+opposite case — 3,000 support messages in **77 classes** (~40 rows each), labelled by an LLM,
+as 384 sentence-embedding dimensions, where the true label errors are known (15.2 %) — the
+*rate* was about right (17.8 % "likely", HIGH) but only **42 % of the flagged rows were real
+errors**, and dropping them made a downstream classifier **1.6 points worse**. Neither a smaller
+leaf (to fit small classes) nor requiring the model's top class to differ from the label fixed
+it: the regularised trees are simply a weak classifier on that kind of data, and a list is only
+as good as the model behind it. On data like that, read the severity as an estimate of the
+noise rate, not as a list of rows to drop; a model suited to the features (e.g. logistic
+regression on embeddings) with a stricter rule did better (77 % precise).
+(Measured in the distilroute project, roadmap item 1b.5.)
+
 ---
 
 ## 6. impact

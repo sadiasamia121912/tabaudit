@@ -131,6 +131,10 @@ wrong on the first run and how it was fixed: [`docs/benchmarks.md`](https://gith
 - Label-noise suspects were checked by hand on two datasets: of the 10 top-ranked rows,
   5 look genuinely mislabeled, 5 are ambiguous, 0 look like false alarms
   ([review sheet](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/label_noise_review.md)).
+- Known limit: with **many classes of few rows each** (77 classes, ~40 rows, text embeddings)
+  the label-noise *rate* is still about right but only ~42 % of the flagged rows are real errors,
+  so treat the list as a lead, not a drop list
+  ([details](https://github.com/sadiasamia121912/tabaudit/blob/main/docs/checks.md#5-label_noise)).
 
 Reproduce with `python benchmarks/run_benchmarks.py` (~6 min, downloads ~50 MB).
 
@@ -183,7 +187,7 @@ any file fails, so it plugs into anything that reads exit codes.
 **GitHub Actions** — one step, pinned to a release tag:
 
 ```yaml
-- uses: sadiasamia121912/tabaudit@v0.3.0
+- uses: sadiasamia121912/tabaudit@v0.3.1
   with:
     data: data/*.csv        # one or more files / globs
     target: label           # omit for unsupervised checks only
@@ -195,7 +199,7 @@ any file fails, so it plugs into anything that reads exit codes.
 
 ```yaml
 - repo: https://github.com/sadiasamia121912/tabaudit
-  rev: v0.3.0
+  rev: v0.3.1
   hooks:
     - id: tabaudit
       args: ["--target", "label", "--fail-on", "high"]
