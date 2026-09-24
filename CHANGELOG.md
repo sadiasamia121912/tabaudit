@@ -2,6 +2,24 @@
 
 All notable changes to tabaudit. Versions follow [Semantic Versioning](https://semver.org).
 
+## 0.3.1 — 2026-09-25
+
+### Fixed
+- **No more fragmentation warnings on wide data.** `encode_features` inserted columns one at a
+  time, so a table with hundreds of features (text embeddings, one-hot blocks) printed one
+  pandas `PerformanceWarning` per column and slowed every check after it. The encoded frame
+  is now built in one step; duplicate column names still come through.
+
+### Changed
+- CI now also tests Python 3.11, so the matrix covers every version `requires-python` allows
+  (3.10–3.13).
+- A test fails if `tabaudit.__version__` and `pyproject.toml` disagree.
+
+### Documented
+- A known limit of `label_noise`: with many classes of few rows each and dense features, the
+  noise *rate* is about right but the row list is not precise (42 % on a 77-class, 3,000-row
+  text-embedding dataset with known errors). See `docs/checks.md` § 5.
+
 ## 0.3.0 — 2026-09-16
 
 The fix release: tabaudit stops at "here is what is wrong with your data" only where stopping
