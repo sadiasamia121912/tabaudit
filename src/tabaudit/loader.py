@@ -75,21 +75,27 @@ def encode_features(X: pd.DataFrame) -> pd.DataFrame:
     - numeric / bool -> float
     - datetime       -> int64 nanoseconds
     - object/category-> integer codes (NaN preserved)
+
+    The frame is built in one go from the encoded columns: inserting them one at a time
+    fragments it, which pandas warns about once per column on wide data (hundreds of
+    features, e.g. text embeddings) and which slows everything downstream.
     """
-    out = pd.DataFrame(index=X.index)
-    for col in X.columns:
-        s = X[col]
+    cols = []
+    for i in range(X.shape[1]):
+        s = X.iloc[:, i]  # by position, so duplicate column names survive
         if pd.api.types.is_bool_dtype(s):
-            out[col] = s.astype(float)
+            cols.append(s.astype(float).to_numpy())
         elif pd.api.types.is_numeric_dtype(s):
-            out[col] = pd.to_numeric(s, errors="coerce").astype(float)
+            cols.append(pd.to_numeric(s, errors="coerce").astype(float).to_numpy())
         elif pd.api.types.is_datetime64_any_dtype(s):
-            out[col] = s.astype("int64").astype(float).where(s.notna(), np.nan)
+            cols.append(s.astype("int64").astype(float).where(s.notna(), np.nan).to_numpy())
         else:
             codes, _ = pd.factorize(s, use_na_sentinel=True)
             codes = codes.astype(float)
             codes[codes < 0] = np.nan
-            out[col] = codes
+            cols.append(codes)
+    out = pd.DataFrame(dict(enumerate(cols)), index=X.index)
+    out.columns = X.columns
     return out
 
 
